@@ -124,10 +124,25 @@ async function handleOcr(request, env) {
     requests: [{
       image: { content: b64 },
       features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
-      // Language hints help Google's model on mixed-script pages.
-      // gu = Gujarati, hi = Hindi, sa = Sanskrit (Devanagari)
+      // languageHints behavior trade-off:
+      //
+      // - No hints: Google auto-detects per region. Works well for pages with
+      //   clean script-per-region separation (full Sanskrit verses standalone,
+      //   Gujarati commentary standalone). BUT short inline Sanskrit phrases
+      //   embedded mid-Gujarati-sentence get classified as Gujarati and
+      //   transliterated incorrectly (e.g. भगवान् काव्यः → માવાનું વાસ્થ્યઃ).
+      //
+      // - Sanskrit first ['sa', 'gu', 'hi']: gives the Devanagari model
+      //   precedence for ambiguous regions, helping inline Sanskrit phrases.
+      //   May cause some pure-Gujarati pages to over-detect Devanagari, but
+      //   in practice Gujarati glyphs are distinct enough that mis-classification
+      //   the other direction is rare.
+      //
+      // Empirical testing on the Bhāgavatam-Rasāsvāda commentary edition shows
+      // Sanskrit-first gives better overall results because the book has
+      // frequent inline Sanskrit citations within Gujarati prose.
       imageContext: {
-        languageHints: ['gu', 'hi', 'sa'],
+        languageHints: ['sa', 'gu', 'hi'],
       },
     }],
   };
