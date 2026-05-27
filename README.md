@@ -2,6 +2,8 @@
 
 A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
 
+Publicly accessible via 
+https://indic-reader.pages.dev/
 ---
 
 ## Table of contents
