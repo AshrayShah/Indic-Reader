@@ -1,0 +1,480 @@
+# Indic Reader
+
+A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
+
+---
+
+## Table of contents
+
+1. [Quick start](#quick-start)
+2. [Loading documents](#loading-documents)
+3. [Reading & narration](#reading--narration)
+4. [Layouts (A / B / C)](#layouts-a--b--c)
+5. [Language filter](#language-filter)
+6. [Outline / table of contents](#outline--table-of-contents)
+7. [Word meanings & translation](#word-meanings--translation)
+8. [Vedabase deep links](#vedabase-deep-links)
+9. [OCR for scanned documents](#ocr-for-scanned-documents)
+10. [Cloud OCR setup](#cloud-ocr-setup)
+11. [Google Drive integration](#google-drive-integration)
+12. [Settings & preferences](#settings--preferences)
+13. [Keyboard shortcuts](#keyboard-shortcuts)
+14. [Privacy & data handling](#privacy--data-handling)
+15. [Troubleshooting](#troubleshooting)
+16. [Known limitations](#known-limitations)
+
+---
+
+## Quick start
+
+1. Open `index.html` in any modern browser (Chrome, Firefox, Safari, Edge — desktop or mobile)
+2. Drag a file onto the drop zone, or tap **📁 Choose Files**
+3. For PDFs, select page range, tap **▶ Process Pages**
+4. Use the **▶ Play** button to narrate, or scroll/tap to read
+
+For scanned PDFs (image-only), turn on **Force OCR** before processing.
+
+---
+
+## Loading documents
+
+Five ways to load content:
+
+| Method | When to use |
+|--------|-------------|
+| **📁 Choose Files** | Pick files from your device — most common path |
+| **📂 Browse** | Open a folder on desktop (File System Access API); falls back to multi-file picker on mobile |
+| **🟢 Drive** | Pick from Google Drive (requires one-time OAuth setup — see [Drive integration](#google-drive-integration)) |
+| **✍️ Paste Text** | Paste Sanskrit/Hindi/Gujarati text directly |
+| **Drag & drop** | Drop files anywhere in the page |
+| **Drive share link** | Paste a public Drive URL — file must be set to "Anyone with the link can view" |
+
+Supported file types: PDF, DOCX, TXT, RTF, HTML, XML, images (JPG, PNG, etc.)
+
+---
+
+## Reading & narration
+
+Two views, switchable via the tabs at the top of the reader:
+
+- **📝 Text View** — extracted text reflowed for screen reading. One line/verse per row. Each row has a ★ favorite button.
+- **📄 Document View** — original page rendered as image with text overlay highlighting. Shows the page exactly as printed.
+
+### Player controls (bottom bar)
+
+| Button | Action |
+|--------|--------|
+| ⏮ | Previous line / verse |
+| ▶ / ⏸ | Play / pause narration |
+| ⏹ | Stop narration |
+| ⏭ | Next line / verse |
+| Page chip | Tap to jump to a specific page |
+
+### Narration toggles
+
+- **🕉 Chant** — slow, contemplative narration speed (overrides per-language sliders)
+- **Auto-scroll** — scrolls the page automatically as narration progresses
+- **Pause at skip** — when narration encounters a line in a language you've filtered out, pause briefly so you can decide whether to skip or include it
+- **📖 Continuous** — auto-advance through pages without manual ⏭
+
+### Speed sliders
+
+Three independent sliders, one per language (Gujarati, Hindi, Sanskrit). Adjust narration speed per script. Sanskrit chanting traditionally slower; Hindi/Gujarati prose can be faster.
+
+### Screen wake lock
+
+While narrating, the screen stays on automatically. When you stop narration or close the tab, it releases. Requires HTTPS; some browsers (older Safari) don't support it and screen behavior falls back to OS default.
+
+---
+
+## Layouts (A / B / C)
+
+Top of the reader has a layout selector. Choose what suits your reading style:
+
+- **A — Single column** (default): on-demand translation. Tap "Translate verse" on each line if you want it.
+- **B — Side-by-side**: Sanskrit on the left, translations on the right. Auto-translates as lines scroll into view. Desktop-only — falls back to C below 768px width.
+- **C — Stacked pairs**: each Sanskrit verse followed immediately by its Gujarati + Hindi + English translation. Auto-translates everything. Best for mobile.
+
+Choice is saved in your browser; persists across sessions.
+
+Switching to B or C the first time will prompt for consent (translation sends text to Google Translate's public endpoint).
+
+---
+
+## Language filter
+
+Buttons above the text: **All / ગુ Guj / સં Sans / હિ Hin**
+
+- Filters which lines are visible AND which lines are narrated
+- Useful when reading scripture with both Sanskrit verses and Gujarati commentary — you can hear just the Sanskrit, or just the commentary
+
+---
+
+## Outline / table of contents
+
+For DOCX files, the **📑 Outline** button appears in the reader header. Tap it to see the document's structure as a navigable list.
+
+The outline shows different things depending on the document:
+
+| Strategy | When used | What you see |
+|----------|-----------|--------------|
+| **Headings** | DOCX uses Word's Heading 1/2/3 styles | Hierarchical TOC indented by heading level |
+| **Author page breaks** | DOCX has explicit page breaks (Ctrl+Enter in Word) | "Page 1, Page 2, …" matching author intent |
+| **Auto-chunked** | Document has neither headings nor page breaks | "Chunk 1, Chunk 2, …" — each ≈500 words |
+
+Tap any entry to scroll the reader to that section. Brief highlight pulse shows where you landed.
+
+---
+
+## Word meanings & translation
+
+### Show Meanings (Sanskrit only)
+
+Below each Sanskrit verse, tap **Show Meanings** to look up each word:
+
+1. Queries the Cologne University Monier-Williams dictionary (the authoritative Sanskrit lexicon)
+2. Returns English definitions, then auto-translates them to Gujarati
+3. Cached per-session — repeated lookups are instant
+
+Source badge per word:
+- **MW** (green) — from Monier-Williams (authoritative)
+- **GT** (grey) — Google Translate fallback (less reliable for technical Sanskrit terms)
+
+### Translate verse
+
+Below each line, tap **🌐 Translate verse** to get full-verse translations:
+
+- Gujarati, Hindi, and English translations all shown
+- Each has a 🔊 button to hear it spoken in that language's voice
+- Cached per source — same verse won't be translated twice
+
+This sends the verse text to Google Translate's public endpoint. Disabled by default; first use prompts for consent.
+
+---
+
+## Vedabase deep links
+
+For recognized scriptures (Śrīmad-Bhāgavatam, Bhagavad-gītā), each verse gets a 📖 link to the official Vedabase entry:
+
+- Filename hint helps: name files like `SB_3.25.pdf` or `BG_2.pdf` for auto-detection
+- Source chip shows "SB — set canto/ch" — tap to enter chapter/verse context
+- Once context is set, every verse line has `📖 SB 3.25.6 on vedabase.io ↗` pointing to the official commentary
+
+Vedabase content is BBT-copyrighted; we deep-link only, never copy text.
+
+---
+
+## OCR for scanned documents
+
+OCR (Optical Character Recognition) extracts text from images and scanned PDFs.
+
+### When to use OCR
+
+| File type | OCR needed? |
+|-----------|-------------|
+| Digital PDF with embedded text | **No** — text extracted directly (perfect accuracy) |
+| Scanned PDF (image-only) | **Yes** — turn on **Force OCR** |
+| JPEG / PNG of a page | **Yes** — runs automatically |
+| DOCX / RTF / TXT / HTML | **No** — text already structured |
+
+### Force OCR toggle
+
+Located near "Clear All" on the main screen. Turn ON when:
+- You uploaded a scanned PDF and see "No Indic text found"
+- The PDF's embedded text is garbage (font mapping broken)
+- You want to re-run OCR with a different engine
+
+### Local OCR (default)
+
+Uses Tesseract.js running entirely in your browser. Free, private, works offline once language data is cached. Slower (~5–15 seconds per page) and less accurate than cloud OCR on poor scans.
+
+Language data (~5MB for Gujarati + Devanagari) is downloaded from `tessdata.projectnaptha.com` on first OCR, then cached.
+
+### OCR quality indicator
+
+After processing, a small badge near each source shows which engine processed it:
+
+- **☁️ Google** (green) — Google Cloud Vision (via your Cloudflare Worker)
+- **☁️ OCR.space** (green) — OCR.space free tier
+- **📱 Local** (grey) — Tesseract.js fallback
+
+A confidence banner appears for low-quality results (< 60% confidence) — verify against the original page.
+
+---
+
+## Cloud OCR setup
+
+Cloud OCR significantly improves accuracy on poor scans, photos, and books with marginalia. **Optional and opt-in** — disabled by default.
+
+### Why a proxy?
+
+Google Cloud Vision blocks direct browser calls (CORS). The app uses a free **Cloudflare Worker** as a proxy between your browser and Google. Your API key lives on Cloudflare as an encrypted secret — never exposed in browser source code.
+
+### One-time setup (≈ 10 minutes)
+
+Two parts:
+
+#### Part 1: Get a Google Cloud Vision API key
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a new project (e.g. `indic-reader`)
+3. **Billing → Link a billing account** (free tier covers 1,000 calls/month at $0, but a card is required)
+4. **Billing → Budgets & alerts → Create budget**: set amount to **$1** with default thresholds — this emails you BEFORE any charge
+5. **APIs & Services → Library**: search "Cloud Vision API", click ENABLE
+6. **APIs & Services → Credentials → + Create credentials → API key**
+7. Copy the key. Click "Edit API key":
+   - **API restrictions**: Restrict key → check ONLY "Cloud Vision API"
+   - **Application restrictions**: None (Worker calls don't preserve referrer)
+   - SAVE
+
+#### Part 2: Deploy a Cloudflare Worker
+
+1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → Workers & Pages
+2. Create → Hello World → name it (e.g. `indic-ocr-proxy`) → Deploy
+3. Open Worker → Edit code → delete the template → paste the entire `cloudflare-worker-google-ocr.js` file
+4. Save and Deploy
+5. Worker → Settings → Variables and Secrets, add two:
+   - `GOOGLE_API_KEY` = (your key from Part 1) — mark as **Encrypt** (Secret)
+   - `ALLOWED_ORIGIN` = your app's URL (e.g. `https://indic-reader.pages.dev`) — use `*` only for testing
+6. Save
+
+#### Part 3: Configure the app
+
+1. In the app, tap **⚙ Cloud OCR** (gear icon near Cloud OCR toggle)
+2. Provider: **⭐ Cloudflare Worker → Google Vision**
+3. Paste your Worker URL (e.g. `https://indic-ocr-proxy.YOUR.workers.dev`)
+4. Tap **🔍 Test connection** — should show `✓ Connection works. Detected: "TEST"`
+5. **Save credentials**
+6. Flip **☁️ Cloud OCR** toggle ON
+
+### OCR.space alternative (Gujarati only, no setup)
+
+For Gujarati-only documents and quick testing:
+
+1. Get a free key at [ocr.space/ocrapi/freekey](https://ocr.space/ocrapi/freekey)
+2. ⚙ Cloud OCR → choose OCR.space → paste key → save
+
+Free tier: 25,000 pages/month. No Sanskrit support in free tier.
+
+### Cost reality
+
+| Provider | Free tier | After free tier |
+|----------|-----------|-----------------|
+| Google Cloud Vision | 1,000 calls/mo | $1.50 per 1,000 calls |
+| OCR.space | 25,000 calls/mo | Need paid plan |
+| Cloudflare Workers | 100,000 calls/day | $0.50 per million |
+
+For personal reading (a few dozen pages a day), you'll never exceed any free tier. Set the $1 Google budget alert and you can't be surprised.
+
+---
+
+## Google Drive integration
+
+**Optional and OAuth-gated.** Lets you pick files directly from your Drive instead of downloading then uploading.
+
+### Setup
+
+1. In Google Cloud Console (same project as Vision), enable:
+   - **Google Drive API**
+   - **Google Picker API**
+2. Create credentials:
+   - **OAuth 2.0 Client ID** (Web application)
+     - Authorized JavaScript origins: your app URL (e.g. `https://indic-reader.pages.dev`)
+   - **API key** (separate from the Vision key)
+     - API restrictions: Drive API + Picker API
+     - Application restrictions: HTTP referrers → `https://YOUR-APP-URL/*`
+3. **OAuth consent screen** → set up as External + Testing → add your own email as Test User
+4. In the app: tap **🟢 Drive** → enter OAuth Client ID and API key → save
+
+### Usage
+
+- Tap **🟢 Drive** → **🔐 Sign in & pick from Drive**
+- Google's Picker UI opens; select files
+- Files are downloaded into the app and processed
+
+Drive integration is fiddly to set up. If you have trouble, the local file picker works perfectly without any setup.
+
+---
+
+## Settings & preferences
+
+Saved automatically in browser localStorage:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Theme | Auto | Light / dark / follow system |
+| Layout | A | Single column |
+| Voice per language | First available | Use **Voice Settings** to choose |
+| Speed per language | 1.0× | Three sliders |
+| Bookmarks (★ stars) | None | Per-line favorites |
+| Show Meanings consent | Off | Required for Sanskrit dictionary |
+| Translate consent | Off | Required for verse translation |
+| Cloud OCR consent | Off | Required for cloud OCR |
+| Drive credentials | None | OAuth Client ID + API key |
+| Cloud OCR credentials | None | Worker URL or OCR.space key |
+
+### Reset privacy choices
+
+Bottom of the page → "Reset privacy choices" — revokes all consents and re-shows the privacy banner. Doesn't delete credentials.
+
+### Clear All
+
+Top of the file-input section → wipes loaded documents and in-memory state. Doesn't touch settings or credentials.
+
+---
+
+## Keyboard shortcuts
+
+Desktop only:
+
+| Key | Action |
+|-----|--------|
+| **Space** | Play / pause narration |
+| **←** | Previous line |
+| **→** | Next line |
+| **↑** | Decrease speed |
+| **↓** | Increase speed |
+| **T** | Toggle Text / Document view |
+| **F** | Cycle language filter (All → Guj → Sans → Hin → All) |
+| **S** | Toggle Auto-scroll |
+| **Esc** | Stop narration / close dialogs |
+
+---
+
+## Privacy & data handling
+
+**Files stay on your device by default.** The app runs entirely in your browser — there's no Indic Reader server.
+
+### What's sent externally and when
+
+| Feature | Sends data to | When |
+|---------|---------------|------|
+| **Cloud OCR** | Cloudflare Worker → Google Vision (or OCR.space) | Each page processed (only when toggle is ON) |
+| **Show Meanings** | Cologne University MW API + Google Translate | When you tap "Show Meanings" |
+| **Translate verse** | Google Translate (public endpoint) | When you tap "Translate verse" or use layout B/C |
+| **Vedabase link** | vedabase.io (link only, no content) | When you tap the 📖 link (opens in new tab) |
+| **Drive Picker** | Google (drive.google.com) | When you tap Drive sign-in |
+| **First-launch CDN** | cdn.jsdelivr.net | Loading PDF/OCR/DOCX libraries (cached afterward) |
+| **Tesseract language data** | tessdata.projectnaptha.com | First local OCR run (cached afterward) |
+
+### What's NOT sent
+
+- No analytics or telemetry
+- No tracking pixels
+- No cookies
+- No data sent to Anthropic or any other party
+- Your text is never sent anywhere unless you explicitly trigger an external feature
+
+### Your data rights (GDPR/DPDP)
+
+- **Access/Portability**: use "Copy Text" to export all extracted content
+- **Erasure**: "Clear All" wipes in-memory state; browser "Clear site data" wipes preferences
+- **Withdraw consent**: "Reset privacy choices" link at the bottom
+
+---
+
+## Troubleshooting
+
+### "No Indic text found"
+
+Usually means the document has no embedded text. Solutions:
+1. Turn ON **Force OCR**, re-process
+2. If the file is a Google Docs PDF, font mapping may be broken — Force OCR fixes it
+3. For images: make sure the script is clearly readable (clean scan, no glare)
+
+### Cloud OCR shows "Local (cloud failed)"
+
+Something went wrong with cloud OCR; it fell back to local. Check browser console for the specific error.
+Common causes:
+- Worker URL wrong or Worker not deployed
+- Google API key invalid or restrictions blocking it
+- ALLOWED_ORIGIN on Worker doesn't match your app URL
+- Free quota exceeded
+- Network down
+
+### Sanskrit being read as Gujarati (or vice versa)
+
+This is a known OCR limitation: inline script-switching within a single line confuses every OCR engine. Standalone verses work; short embedded quotes may misread. Verify against Document View.
+
+### "Drive Picker error"
+
+Usually means API key restrictions are too strict. Quick fixes:
+1. Edit the Drive Picker API key in Google Cloud Console
+2. Application restrictions → temporarily set to "None"
+3. Wait 5 minutes for propagation
+4. Reload the app
+
+If still broken, just skip Drive — use the regular file picker.
+
+### Narration sounds wrong / weird voice
+
+System TTS voices vary by device. Tap **Voice Settings** in the reader and pick a better voice:
+- Android: install "Google Text-to-Speech" + the language packs
+- Windows: Settings → Time & Language → Speech → Add voices
+- macOS/iOS: System Settings → Accessibility → Spoken Content → System Voice
+
+For Sanskrit specifically, Hindi voices are usually the best fallback since true Sanskrit TTS is rare.
+
+### Page won't scroll on mobile
+
+Pull down firmly to refresh. If the player bar is hiding the bottom of content, try landscape orientation. The bottom bar's height adapts but can occasionally need a refresh.
+
+---
+
+## Known limitations
+
+Things this app **does not** and **cannot** do well:
+
+- **Vedic pitch accents (svara marks)** — Web Speech API can't render them. Pre-recorded chanting audio would be needed.
+- **Real-time collaboration** — no shared state across devices/users.
+- **Note-taking** — bookmarks (★) only; no annotations or highlights.
+- **Inline script-switching OCR** — short embedded Sanskrit quotes in Gujarati prose often misread (limitation of all OCR engines, not specific to this app).
+- **Vedabase content scraping** — BBT-copyrighted; we deep-link to the official site only, never copy text.
+- **Translation quality for technical Sanskrit** — Google Translate handles colloquial Sanskrit poorly. Use the MW dictionary for word meanings, treat full-verse auto-translation as approximate.
+- **Offline-first PWA install** — the file works offline once loaded, but proper PWA install with home-screen icon requires the GitHub Pages bundle.
+- **Persistent translation cache** — currently per-session. Reloading the page loses cached translations.
+
+---
+
+## File structure (if you're hosting it yourself)
+
+Minimal — just two files:
+
+```
+indic-reader.html      # the entire app — open this directly
+sw.js                  # service worker (optional, enables offline)
+```
+
+For Cloudflare Pages or GitHub Pages deploy, also include:
+
+```
+_headers               # CSP and security headers
+manifest.json          # PWA manifest
+icon-192.png           # PWA icon
+icon-512.png           # PWA icon
+```
+
+And if you want Cloud OCR via Google Vision:
+
+```
+cloudflare-worker-google-ocr.js   # paste this into a Cloudflare Worker
+```
+
+---
+
+## Credits & sources
+
+- **Monier-Williams dictionary**: Cologne South Asia Studies / cologne-digital-sanskrit-lexicon
+- **OCR**: Tesseract.js (local), Google Cloud Vision (cloud)
+- **DOCX parsing**: mammoth.js
+- **PDF rendering**: pdf.js (Mozilla)
+- **Sanskrit transliteration**: IAST scheme
+- **Vedabase**: deep links to vedabase.io (BBT Inc.)
+
+---
+
+## License & copyright
+
+App code is provided for educational and personal study use. Scripture texts loaded into the app retain their original copyrights — verify your right to OCR or process any document before doing so. Vedabase content is BBT-copyrighted; this app links to but does not redistribute their text.
+
+No commercial redistribution of this app or its output.
