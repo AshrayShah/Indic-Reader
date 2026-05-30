@@ -80,17 +80,31 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
 
+    const url = new URL(request.url);
+
+    // --- Sandhi splitter proxy (GET /sandhi?word=...) ---
+    // Proxies to the University of Hyderabad Heritage segmenter, which has no
+    // CORS headers and so can't be called directly from a browser. This Worker
+    // adds the CORS headers. No API key needed — it's a public academic service.
+    if (url.pathname.endsWith('/sandhi')) {
+      try {
+        return await handleSandhi(request, env, url);
+      } catch (e) {
+        return jsonError(500, `Sandhi proxy error: ${e.message}`, env);
+      }
+    }
+
+    // --- OCR proxy (POST /ocr) ---
     if (request.method !== 'POST') {
-      return jsonError(405, 'Method not allowed. Use POST /ocr', env);
+      return jsonError(405, 'Method not allowed. Use POST /ocr or GET /sandhi', env);
     }
 
     if (!env.GOOGLE_API_KEY) {
       return jsonError(500, 'Worker not configured: missing GOOGLE_API_KEY', env);
     }
 
-    const url = new URL(request.url);
     if (!url.pathname.endsWith('/ocr')) {
-      return jsonError(404, 'Unknown path. Use POST /ocr', env);
+      return jsonError(404, 'Unknown path. Use POST /ocr or GET /sandhi', env);
     }
 
     try {
@@ -100,6 +114,110 @@ export default {
     }
   }
 };
+
+// ----------------------------------------------------------------------------
+// Sandhi splitter — proxy to UoH Heritage segmenter
+// GET /sandhi?word=<devanagari>&mode=word|sent
+// Returns: { kind:'sandhi', input, mode, raw, splits: [...] }
+// ----------------------------------------------------------------------------
+async function handleSandhi(request, env, url) {
+  const word = url.searchParams.get('word');
+  const mode = url.searchParams.get('mode') === 'sent' ? 'sent' : 'word';
+  if (!word) {
+    return jsonError(400, 'Missing ?word= parameter', env);
+  }
+  if (word.length > 200) {
+    return jsonError(413, 'Word too long (>200 chars)', env);
+  }
+
+  // Build upstream URL. We send Unicode Devanagari (URL-encoded) and ask for
+  // Devanagari JSON output.
+  const upstream = 'https://sanskrit.uohyd.ac.in/cgi-bin/scl/MT/prog/sandhi_splitter/sandhi_splitter.cgi'
+    + '?word=' + encodeURIComponent(word)
+    + '&encoding=Unicode&outencoding=D&mode=' + mode + '&disp_mode=json';
+
+  let resp;
+  try {
+    resp = await fetch(upstream, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json, text/html' },
+      // The academic server can be slow; Workers cap subrequests at ~30s.
+      cf: { cacheTtl: 86400, cacheEverything: true },
+    });
+  } catch (e) {
+    return jsonError(502, `Cannot reach segmenter: ${e.message}`, env);
+  }
+
+  if (!resp.ok) {
+    return jsonError(resp.status, `Segmenter returned HTTP ${resp.status}`, env);
+  }
+
+  const bodyText = await resp.text();
+
+  // The server sometimes returns JSON, sometimes HTML-wrapped JSON, sometimes
+  // "No Output Found". Try to extract a splits array robustly.
+  let splits = [];
+  let parsed = null;
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch (e) {
+    // Try to find a JSON array/object embedded in HTML
+    const m = bodyText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+    if (m) {
+      try { parsed = JSON.parse(m[0]); } catch (e2) {}
+    }
+  }
+
+  // Normalize various possible shapes into a flat list of segment strings.
+  // The Heritage/SCL JSON shape has varied over versions; handle the common
+  // ones and fall back to returning the raw text for the app to display.
+  if (parsed) {
+    splits = normalizeSandhiJson(parsed);
+  }
+
+  const noOutput = /No Output Found/i.test(bodyText);
+
+  return jsonResponse(200, {
+    kind: 'sandhi',
+    input: word,
+    mode,
+    found: splits.length > 0,
+    splits,                       // best-effort parsed segments
+    raw: splits.length ? undefined : bodyText.slice(0, 2000), // for debugging when parse fails
+    noOutput,
+  }, env);
+}
+
+// Try to pull a list of segments out of whatever JSON shape the server sent.
+function normalizeSandhiJson(parsed) {
+  // Shape A: { "splits": ["राम", "आलयः"] }
+  if (parsed && Array.isArray(parsed.splits)) return parsed.splits.filter(Boolean);
+  // Shape B: array of strings
+  if (Array.isArray(parsed) && parsed.every(x => typeof x === 'string')) return parsed;
+  // Shape C: array of objects with a word/segment field
+  if (Array.isArray(parsed)) {
+    const out = [];
+    for (const item of parsed) {
+      if (typeof item === 'string') out.push(item);
+      else if (item && (item.word || item.segment || item.pada)) {
+        out.push(item.word || item.segment || item.pada);
+      }
+    }
+    if (out.length) return out;
+  }
+  // Shape D: { "1": {...}, "2": {...} } ranked solutions — take the first
+  if (parsed && typeof parsed === 'object') {
+    const keys = Object.keys(parsed);
+    for (const k of keys) {
+      const v = parsed[k];
+      if (Array.isArray(v)) {
+        const seg = v.map(x => (typeof x === 'string' ? x : (x.word || x.segment || x.pada))).filter(Boolean);
+        if (seg.length) return seg;
+      }
+    }
+  }
+  return [];
+}
 
 // ----------------------------------------------------------------------------
 // OCR via Google Cloud Vision
@@ -198,7 +316,7 @@ function corsHeaders(env) {
   const allowedOrigin = env.ALLOWED_ORIGIN || '*';
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
