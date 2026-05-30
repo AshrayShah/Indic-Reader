@@ -1165,13 +1165,29 @@ function detectDevanagariFlavor(text){
   if(NUKTA.test(text)) return 'hin';
   // Score Sanskrit: count markers (each unique pattern hit counts)
   const sanMatches = text.match(new RegExp(SANSKRIT_MARKERS.source, 'g')) || [];
-  const sanScore = sanMatches.length;
+  let sanScore = sanMatches.length;
   // Score Hindi: tokenize on whitespace and danda, match whole tokens only
   const tokens = text.split(/[\s\u0964\u0965।॥,\.\?!]+/).filter(t => t.length > 0);
   let hinScore = 0;
   for(const tok of tokens){
     if(HINDI_FN_WORDS.has(tok)) hinScore++;
   }
+  // --- Additional Sanskrit signals (added to catch verses the markers miss) ---
+  // 1. Dative/genitive case endings -ाय, -स्य, -भ्यः, -ेभ्यः, -ानाम्, -ेषु, -योः
+  //    very characteristic of Sanskrit (e.g. रूपाय, कृष्णाय, तस्य). Hindi rarely
+  //    uses these inflections.
+  const sanCaseEndings = tokens.filter(t =>
+    /(ाय|स्य|भ्यः|ेभ्यः|ानाम्|ाणाम्|ेषु|ासु|योः|स्मै|स्मात्|स्मिन्|भिः)$/.test(t)
+  ).length;
+  // 2. Words ending in a consonant + virama (हलन्त) like नुमः→ no, but वयम्, अहम्,
+  //    तत्, यत्, सन् — Sanskrit keeps final consonants; Hindi usually drops them.
+  const sanViramaEnds = tokens.filter(t => /[\u094D]$/.test(t) || /म्$|त्$|न्$|क्$|ग्$|ङ्$/.test(t)).length;
+  // 3. Dense conjuncts (3+ consecutive consonant+virama sequences in one token)
+  //    like सच्चिदानन्द, उत्पत्त्यादि — strong Sanskrit signal.
+  const denseConjunct = tokens.filter(t => (t.match(/\u094D/g) || []).length >= 2).length;
+
+  sanScore += sanCaseEndings + Math.min(sanViramaEnds, 3) + Math.min(denseConjunct, 3);
+
   // Decide
   if(sanScore >= 2 && sanScore > hinScore) return 'san';
   if(hinScore >= 1 && hinScore > sanScore) return 'hin';
@@ -1181,6 +1197,8 @@ function detectDevanagariFlavor(text){
   // Words ending in -्म, -्न, -्ति, -्य (Sanskrit endings) suggest Sanskrit
   const sanEndings = tokens.filter(t => /[्](म|न|य|ति|स्ते|स्य|न्ति|न्तु)$/.test(t)).length;
   if(sanEndings >= 2) return 'san';
+  // If we found ANY strong Sanskrit case endings or dense conjuncts, lean Sanskrit
+  if((sanCaseEndings + denseConjunct) >= 1 && hinScore === 0) return 'san';
   // Default: Hindi (more common in modern texts)
   return 'hin';
 }
@@ -5240,20 +5258,51 @@ function saveSandhi(lineText, tokens){
 
 // Interactive Split Sandhi panel.
 async function splitSandhiUI(li, lineEl, btn){
-  // Toggle off if already open
-  const existing = lineEl.querySelector('.sandhi-panel');
-  if(existing){ existing.remove(); btn.textContent = '✂️ Split Sandhi'; return; }
-
   const ln = state.lines[li];
   if(!ln) return;
   const lineText = ln.text;
 
-  const panel = document.createElement('div');
-  panel.className = 'sandhi-panel';
-  panel.style.cssText = 'margin:8px 0;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-size:14px';
-  panel.innerHTML = '<div style="font-size:12px;color:var(--muted)">Splitting…</div>';
-  lineEl.appendChild(panel);
-  btn.textContent = '✂️ Close';
+  // Build/replace a full-screen overlay (like the privacy banner) instead of
+  // an inline panel — gives room for per-word meanings and voice.
+  let overlay = document.getElementById('sandhiOverlay');
+  if(overlay){ overlay.remove(); }
+  overlay = document.createElement('div');
+  overlay.id = 'sandhiOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:85;background:var(--overlay-bg);display:flex;align-items:flex-end;justify-content:center';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:var(--panel);border-top-left-radius:18px;border-top-right-radius:18px;'
+    + 'width:100%;max-width:640px;max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;'
+    + 'padding:18px 16px 28px;box-shadow:0 -4px 24px rgba(0,0,0,.3)';
+  overlay.appendChild(sheet);
+  overlay.onclick = (e) => { if(e.target === overlay){ TTS.hardStop(); overlay.remove(); } };
+  document.body.appendChild(overlay);
+
+  // Header
+  sheet.innerHTML = '';
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px';
+  header.innerHTML = '<div style="font-weight:700;font-size:16px">✂️ Split Sandhi</div>';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn ghost'; closeBtn.style.cssText = 'font-size:13px;padding:6px 12px';
+  closeBtn.textContent = '✕ Close';
+  closeBtn.onclick = () => { TTS.hardStop(); overlay.remove(); };
+  header.appendChild(closeBtn);
+  sheet.appendChild(header);
+
+  // Original line (for reference)
+  const orig = document.createElement('div');
+  orig.style.cssText = 'font-size:16px;color:var(--san);margin:6px 0 4px;padding:8px;background:var(--panel2);border-radius:8px';
+  orig.textContent = lineText;
+  sheet.appendChild(orig);
+
+  const status = document.createElement('div');
+  status.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:10px';
+  status.textContent = 'Splitting…';
+  sheet.appendChild(status);
+
+  // Container that render() fills
+  const body = document.createElement('div');
+  sheet.appendChild(body);
 
   // Build initial token state: saved > API > assistant
   let tokens, sourceNote;
@@ -5261,123 +5310,145 @@ async function splitSandhiUI(li, lineEl, btn){
   if(saved && saved.length){
     let acc = 0;
     tokens = saved.map(s => { const t = { text:s.text, origText:s.text, start:acc, end:acc+s.text.length, rule:s.rule||'saved' }; acc += s.text.length; return t; });
-    sourceNote = 'Your saved split';
+    sourceNote = '💾 Your saved split';
   } else {
     const result = await runSandhiSplit(lineText);
     tokens = result.tokens;
-    sourceNote = result.note + (result.source==='api' ? ' ✓' : '');
+    sourceNote = (result.source==='api' ? '✓ ' : '') + result.note;
   }
 
-  // Render function — rebuilds the panel from current token state
-  async function render(){
-    panel.innerHTML = '';
-    const note = document.createElement('div');
-    note.style.cssText = 'font-size:11px;color:var(--muted);margin-bottom:8px';
-    note.textContent = sourceNote;
-    panel.appendChild(note);
+  function render(){
+    status.textContent = sourceNote;
+    body.innerHTML = '';
 
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:2px;line-height:2.2';
+    // Help line
+    const help = document.createElement('div');
+    help.style.cssText = 'font-size:11px;color:var(--muted);margin:4px 0 10px;line-height:1.5';
+    help.innerHTML = 'Tap <b>·</b> between words to <b>merge</b> · tap <b>✂</b> on a word to <b>split</b> it · tap a word to see meaning &amp; hear it';
+    body.appendChild(help);
+
+    // Word list — each word is a row with chip + actions + inline meaning slot
     tokens.forEach((tok, idx) => {
-      // Word chip
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'margin:4px 0';
+
+      // Top row: word chip, ✂ split, 🔊 speak
+      const top = document.createElement('div');
+      top.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+
       const chip = document.createElement('span');
       chip.textContent = tok.text;
-      chip.style.cssText = 'padding:3px 8px;border-radius:6px;background:var(--panel);border:1px solid var(--line);cursor:pointer;color:var(--san)';
-      chip.title = (tok.rule ? 'Rule: '+tok.rule+'\n' : '') + 'Tap to look up meaning · long-press to chant';
-      // Dictionary-confidence coloring (async)
+      chip.style.cssText = 'padding:5px 12px;border-radius:8px;background:var(--panel2);border:2px solid var(--line);color:var(--san);font-size:18px;cursor:pointer';
       sandhiDictExists(tok.text).then(found => {
         chip.style.borderColor = found ? 'var(--ok)' : 'var(--line)';
-        if(found) chip.style.background = 'color-mix(in srgb, var(--ok) 12%, var(--panel))';
-        chip.title += found ? '\n✓ found in dictionary' : '\n(not found — may be inflected/compound/verb)';
       }).catch(()=>{});
-      // Tap = look up meaning; show inline
+
+      const meaningSlot = document.createElement('div');
+      meaningSlot.style.cssText = 'font-size:13px;color:var(--ink);margin:4px 0 2px;padding-left:4px';
+
       chip.onclick = async () => {
-        const old = panel.querySelector('.sandhi-meaning');
-        if(old) old.remove();
-        const mdiv = document.createElement('div');
-        mdiv.className = 'sandhi-meaning';
-        mdiv.style.cssText = 'margin-top:8px;padding:8px;background:var(--panel);border-radius:8px;font-size:13px';
-        mdiv.textContent = 'Looking up '+tok.text+'…';
-        panel.appendChild(mdiv);
+        meaningSlot.textContent = 'Looking up…';
         try {
           const res = await lookupMonierWilliams(SANDHI.cleanForLookup(tok.text));
-          mdiv.innerHTML = '<b>'+escapeHtml(tok.text)+'</b>: ' + (res && typeof res === 'string' ? escapeHtml(res) : '<span style="color:var(--muted)">no dictionary entry (likely inflected form, compound, or verb)</span>');
+          if(res && typeof res === 'string'){
+            meaningSlot.innerHTML = '<span style="color:var(--muted)">'+escapeHtml(res)+'</span>';
+          } else {
+            meaningSlot.innerHTML = '<span style="color:var(--muted)">No dictionary entry — likely an inflected form, compound, or verb. Try splitting further, or check Document View.</span>';
+          }
         } catch(e){
-          mdiv.innerHTML = '<b>'+escapeHtml(tok.text)+'</b>: <span style="color:var(--muted)">lookup unavailable</span>';
+          meaningSlot.innerHTML = '<span style="color:var(--muted)">Lookup unavailable.</span>';
         }
       };
-      // Long-press = chant this pada
-      let pressTimer;
-      chip.onpointerdown = () => { pressTimer = setTimeout(()=>{ speakPada(tok.text); }, 500); };
-      chip.onpointerup = chip.onpointerleave = () => clearTimeout(pressTimer);
-      row.appendChild(chip);
 
-      // Gap control between this token and the next: tap to MERGE
+      const speakBtn = document.createElement('button');
+      speakBtn.className = 'pada-controls';
+      speakBtn.textContent = '🔊';
+      speakBtn.title = 'Hear this word';
+      speakBtn.onclick = () => speakPada(tok.text);
+
+      const splitBtn = document.createElement('button');
+      splitBtn.className = 'pada-controls';
+      splitBtn.textContent = '✂';
+      splitBtn.title = 'Split this word';
+      const offsets = SANDHI.validSplitOffsets(tok.text);
+      if(offsets.length === 0){ splitBtn.style.opacity = '0.3'; splitBtn.disabled = true; }
+      splitBtn.onclick = () => showSplitPicker(tok, (offset) => { tokens = SANDHI.splitTokenAt(tokens, idx, offset); render(); });
+
+      top.appendChild(chip);
+      top.appendChild(speakBtn);
+      top.appendChild(splitBtn);
+      wrap.appendChild(top);
+      wrap.appendChild(meaningSlot);
+      body.appendChild(wrap);
+
+      // Merge control between this word and next
       if(idx < tokens.length - 1){
-        const gap = document.createElement('span');
-        gap.textContent = '·';
-        gap.style.cssText = 'cursor:pointer;color:var(--accent2);font-weight:bold;padding:0 4px;user-select:none';
-        gap.title = 'Tap to merge these two words back (restores original text)';
-        gap.onclick = () => { tokens = SANDHI.mergeTokens(tokens, idx, lineText); render(); };
-        row.appendChild(gap);
+        const mergeRow = document.createElement('div');
+        mergeRow.style.cssText = 'text-align:center;margin:-2px 0';
+        const mergeBtn = document.createElement('span');
+        mergeBtn.textContent = '· merge ·';
+        mergeBtn.style.cssText = 'cursor:pointer;color:var(--accent2);font-size:11px;padding:2px 8px;user-select:none';
+        mergeBtn.title = 'Merge these two words (restores original text)';
+        mergeBtn.onclick = () => { tokens = SANDHI.mergeTokens(tokens, idx, lineText); render(); };
+        mergeRow.appendChild(mergeBtn);
+        body.appendChild(mergeRow);
       }
     });
-    panel.appendChild(row);
 
-    // Manual split helper: tap a chip-split affordance
-    const help = document.createElement('div');
-    help.style.cssText = 'font-size:11px;color:var(--muted);margin-top:8px';
-    help.textContent = 'Tap a word for meaning · tap · between words to merge · use ✂ below to split a word';
-    panel.appendChild(help);
-
-    // Split controls — one ✂ per multi-cluster token
-    const splitRow = document.createElement('div');
-    splitRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:6px';
-    tokens.forEach((tok, idx) => {
-      const offsets = SANDHI.validSplitOffsets(tok.text);
-      if(offsets.length === 0) return;
-      const sb = document.createElement('button');
-      sb.className = 'pada-controls';
-      sb.textContent = '✂ ' + tok.text;
-      sb.title = 'Split this word at a chosen point';
-      sb.onclick = () => {
-        // Show cluster boundary picker
-        showSplitPicker(tok, (offset) => { tokens = SANDHI.splitTokenAt(tokens, idx, offset); render(); });
-      };
-      splitRow.appendChild(sb);
-    });
-    if(splitRow.children.length) panel.appendChild(splitRow);
+    // Speak-all-padas button
+    const speakAll = document.createElement('button');
+    speakAll.className = 'btn ghost'; speakAll.style.cssText = 'font-size:12px;margin-top:10px;width:100%';
+    speakAll.textContent = '🔊 Chant all padas in sequence';
+    speakAll.onclick = () => speakPadaSequence(tokens.map(t => SANDHI.cleanForLookup(t.text)).filter(Boolean));
+    body.appendChild(speakAll);
 
     // Action buttons
     const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
+    actions.style.cssText = 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap';
     const saveBtn = document.createElement('button');
     saveBtn.className = 'btn ghost'; saveBtn.style.fontSize='12px';
-    saveBtn.textContent = '💾 Save this split';
-    saveBtn.onclick = () => { saveSandhi(lineText, tokens); saveBtn.textContent='✓ Saved'; setTimeout(()=>saveBtn.textContent='💾 Save this split',1500); };
+    saveBtn.textContent = '💾 Save';
+    saveBtn.onclick = () => { saveSandhi(lineText, tokens); saveBtn.textContent='✓ Saved'; setTimeout(()=>saveBtn.textContent='💾 Save',1500); };
     actions.appendChild(saveBtn);
 
     const reapiBtn = document.createElement('button');
     reapiBtn.className = 'btn ghost'; reapiBtn.style.fontSize='12px';
     reapiBtn.textContent = '🔄 Re-split from API';
     reapiBtn.onclick = async () => {
-      panel.innerHTML = '<div style="font-size:12px;color:var(--muted)">Re-splitting…</div>';
+      status.textContent = 'Re-splitting…';
       const result = await runSandhiSplit(lineText);
-      tokens = result.tokens; sourceNote = result.note + (result.source==='api'?' ✓':'');
+      tokens = result.tokens; sourceNote = (result.source==='api'?'✓ ':'')+result.note;
       render();
     };
     actions.appendChild(reapiBtn);
 
     const resetBtn = document.createElement('button');
     resetBtn.className = 'btn ghost'; resetBtn.style.fontSize='12px';
-    resetBtn.textContent = '↺ Reset to original';
+    resetBtn.textContent = '↺ Reset';
     resetBtn.onclick = () => { tokens = SANDHI.tokenizeOnWhitespace(lineText); sourceNote='Original (unsplit)'; render(); };
     actions.appendChild(resetBtn);
 
-    panel.appendChild(actions);
+    body.appendChild(actions);
   }
 
-  await render();
+  render();
+}
+
+// Speak a sequence of padas with small gaps
+function speakPadaSequence(words){
+  if(!words || !words.length) return;
+  TTS.hardStop();
+  const sanVoice = pickVoice('san');
+  let i = 0;
+  function next(){
+    if(i >= words.length) return;
+    const u = new SpeechSynthesisUtterance(words[i]);
+    if(sanVoice) u.voice = sanVoice;
+    u.rate = 0.8;
+    u.onend = () => { i++; setTimeout(next, 250); };
+    TTS.speak(u);
+  }
+  next();
 }
 
 // Speak a single pada using the Sanskrit voice
