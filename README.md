@@ -1,11 +1,6 @@
-
----
-Publicly accessible via 
-https://indic-reader.pages.dev/
----
-
----
 # Indic Reader
+
+**🌐 Live app: [https://indic-reader.pages.dev/](https://indic-reader.pages.dev/)**
 
 A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
 
@@ -209,6 +204,15 @@ For recognized scriptures (Śrīmad-Bhāgavatam, Bhagavad-gītā), each verse ge
 - Filename hint helps: name files like `SB_3.25.pdf` or `BG_2.pdf` for auto-detection
 - Source chip shows "SB — set canto/ch" — tap to enter chapter/verse context
 - Once context is set, every verse line has `📖 SB 3.25.6 on vedabase.io ↗` pointing to the official commentary
+
+**Manual reference entry (when auto-detection fails):** if a Sanskrit verse has no working link, it shows a **🔗 Set reference** button. Tap it to enter the details by hand:
+
+- Choose the scripture (Śrīmad-Bhāgavatam or Bhagavad-gītā)
+- Enter **Skand**, **Adhyay**, and **Shlok** (for BG, just Adhyay and Shlok)
+- A live preview shows the resulting vedabase.io link before you save
+- Once saved, the verse shows its 📖 link, and a **✎** appears to edit it later
+
+Your manual references are saved (keyed to the verse text) and persist across reloads and re-processing. Use **↺ Clear my reference** in the dialog to remove one.
 
 Vedabase content is BBT-copyrighted; we deep-link only, never copy text.
 
@@ -439,6 +443,10 @@ Desktop only:
 - No cookies
 - No data sent to Anthropic or any other party
 - Your text is never sent anywhere unless you explicitly trigger an external feature
+
+### Stored only on your device (never uploaded)
+
+Your preferences and manual corrections live in this browser's `localStorage` and are never sent anywhere: language/text overrides, **manual verse references** (the canto/chapter/verse you enter for vedabase.io links), saved sandhi splits, translation cache, voice/theme preferences, and Drive credentials. A manual verse reference only ever produces a vedabase.io link, sent solely when *you* tap that link.
 
 ### Your data rights (GDPR/DPDP)
 
