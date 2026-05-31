@@ -90,6 +90,16 @@ Three independent sliders, one per language (Gujarati, Hindi, Sanskrit). Adjust 
 
 While narrating, the screen stays on automatically. When you stop narration or close the tab, it releases. Requires HTTPS; some browsers (older Safari) don't support it and screen behavior falls back to OS default.
 
+### Chhand (verse metre)
+
+Each Sanskrit verse shows a metre pill, e.g. `📐 Anuṣṭubh · 32 akṣ`. The metre is detected from the syllable count across the **whole verse** (joining the pādas even when a śloka is split across two display lines); the pill appears on the line that completes the verse, and mid-verse lines show just their syllable count.
+
+- **Anuṣṭubh (32)** and **Gāyatrī (24)** are detected reliably by syllable count.
+- **Triṣṭubh, Jagatī, and longer metres** are shown as an *approximate* family match (labelled "(approx.)"), because these depend on the precise guru/laghu (heavy/light) pattern, not just the syllable count — verify them yourself.
+- If no standard metre matches, the pill shows the syllable count with "meter unclear" (common for prose or OCR-garbled verses).
+
+The metre also shapes chant-mode recitation (pitch contour and pauses per pāda).
+
 ---
 
 ## Layouts (A / B / C)
