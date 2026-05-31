@@ -1,17 +1,15 @@
 
-# Indic Reader
-
-A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
-
----
-
 ---
 Publicly accessible via 
 https://indic-reader.pages.dev/
 ---
 
 ---
+# Indic Reader
 
+A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
+
+---
 
 ## Table of contents
 
@@ -521,29 +519,55 @@ Things this app **does not** and **cannot** do well:
 
 ---
 
-## File structure (if you're hosting it yourself)
+## File structure — what each file is for
 
-Minimal — just two files:
+The project ships in a few bundles. Here's what every file does and whether you need it.
 
-```
-indic-reader.html      # the entire app — open this directly
-sw.js                  # service worker (optional, enables offline)
-```
+### Core app (the only truly required file)
 
-For Cloudflare Pages or GitHub Pages deploy, also include:
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `index.html` | **The entire application** — all HTML, CSS, and JavaScript in one self-contained file (~350 KB). Open it directly in a browser and everything works: reading, narration, OCR, meanings, sandhi splitting. Everything else is optional enhancement. | ✅ Yes |
 
-```
-_headers               # CSP and security headers
-manifest.json          # PWA manifest
-icon-192.png           # PWA icon
-icon-512.png           # PWA icon
-```
+### Offline & install support (PWA)
 
-And if you want Cloud OCR via Google Vision:
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `sw.js` | **Service worker.** Caches the app so it loads offline after the first visit, and powers "install to home screen". The version string inside (e.g. `indic-reader-v46`) is bumped on every update to force browsers to fetch the new version. | Optional (enables offline) |
+| `manifest.json` | **PWA manifest** — app name, icons, theme color, display mode. Lets phones offer "Add to Home Screen" with a proper icon. | Optional |
+| `icon-192.png` | App icon (192×192) for home screen / launcher. | Optional |
+| `icon-512.png` | App icon (512×512) for splash screen / high-DPI. | Optional |
 
-```
-cloudflare-worker-google-ocr.js   # paste this into a Cloudflare Worker
-```
+### Hosting & security (Cloudflare Pages / GitHub Pages)
+
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `_headers` | **Security headers** for Cloudflare Pages — Content-Security-Policy (restricts which domains the app may contact), plus standard hardening headers. This is what allows the Worker, dictionary, and translate endpoints while blocking everything else. | Recommended when hosting |
+| `_headers-no-csp` | A **fallback** version with the CSP relaxed, in case the strict policy ever blocks something on your setup. Rename to `_headers` only if you hit a CSP problem. | Optional |
+| `.github/workflows/deploy.yml` | **GitHub Actions** workflow that auto-deploys the repo to GitHub Pages on every push. Only relevant if you host on GitHub. | Optional (GitHub only) |
+| `README.md` | This documentation file. | Reference |
+
+### Cloud OCR & Sandhi (the Cloudflare Worker)
+
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `cloudflare-worker-google-ocr.js` | **The Worker proxy** — paste this into a Cloudflare Worker (it is *not* part of the website; it runs separately on Cloudflare's edge). It does two jobs: (1) proxies page/region images to **Google Cloud Vision** for OCR, and (2) proxies verse text to the **UoH Heritage segmenter** for Split Sandhi. Both are needed only because browsers can't call those services directly (CORS). Needs your Google API key set as a Worker secret. | Only for Cloud OCR & API sandhi |
+| `cloudflare-worker-azure-ocr.js` | An **alternative Worker** using Azure Computer Vision instead of Google, if you prefer Azure. Use one or the other, not both. | Optional alternative |
+
+### Convenience bundles & local testing
+
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `indic-reader-github.zip` | Zipped copy of the GitHub Pages bundle (app + PWA + headers + workflow), ready to upload to a repo. | Convenience |
+| `indic-reader-standalone.zip` | Zipped copy of the standalone/PWA bundle for offline or self-hosting. | Convenience |
+| `serve.py` | A tiny **local web server** (Python, in the standalone/PWA bundle) — run `python serve.py` to test the app at `localhost` with correct headers, since some features need `http://` rather than `file://`. | Local testing only |
+| `android-wrapper/`, `ios-wrapper/`, `windows-wrapper/` | Thin **native wrappers** (in the standalone/PWA bundle) that load the app in a WebView, if you want to package it as an installable app for each platform. | Optional |
+
+### Minimal setups
+
+- **Just try it:** `index.html` alone.
+- **Offline-capable website:** `index.html` + `sw.js` + `manifest.json` + both icons + `_headers`.
+- **Full features (Cloud OCR + API sandhi):** the above, plus deploy `cloudflare-worker-google-ocr.js` to a Cloudflare Worker and paste its URL into the app's Cloud OCR settings.
 
 ---
 
