@@ -1,3 +1,4 @@
+
 # Indic Reader
 
 A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
@@ -10,6 +11,7 @@ https://indic-reader.pages.dev/
 ---
 
 ---
+
 
 ## Table of contents
 
@@ -178,7 +180,7 @@ Sanskrit verses fuse words together through sandhi (e.g. `तपोवनम्`
 - A **Meaning in: ગુ Gujarati / हि Hindi / EN English** toggle switches all word meanings (defaults to Gujarati; remembers your choice)
 - **Tap a word** to also see its full **Monier-Williams dictionary** entry, and **🔊** to hear it
 - **· merge ·** between any two words joins them back
-- **✂** on a word splits it further (a picker lets you choose where)
+- **✂** on a word opens an inline picker right in that row — tap a cut-point between letters to split there (no separate popup)
 - **🔊 Chant all padas** speaks the separated words in sequence
 - **💾 Save** remembers your split for that verse; **🔄 Re-split from API** re-queries; **↺ Reset** restores the original
 
