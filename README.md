@@ -2,8 +2,13 @@
 
 A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.
 
+---
+
+---
 Publicly accessible via 
 https://indic-reader.pages.dev/
+---
+
 ---
 
 ## Table of contents
@@ -15,15 +20,18 @@ https://indic-reader.pages.dev/
 5. [Language filter](#language-filter)
 6. [Outline / table of contents](#outline--table-of-contents)
 7. [Word meanings & translation](#word-meanings--translation)
-8. [Vedabase deep links](#vedabase-deep-links)
-9. [OCR for scanned documents](#ocr-for-scanned-documents)
-10. [Cloud OCR setup](#cloud-ocr-setup)
-11. [Google Drive integration](#google-drive-integration)
-12. [Settings & preferences](#settings--preferences)
-13. [Keyboard shortcuts](#keyboard-shortcuts)
-14. [Privacy & data handling](#privacy--data-handling)
-15. [Troubleshooting](#troubleshooting)
-16. [Known limitations](#known-limitations)
+8. [Split Sandhi (word separation)](#split-sandhi-word-separation)
+9. [Correcting language & text](#correcting-language--text)
+10. [Vedabase deep links](#vedabase-deep-links)
+11. [OCR for scanned documents](#ocr-for-scanned-documents)
+12. [Re-OCR a region](#re-ocr-a-region)
+13. [Cloud OCR setup](#cloud-ocr-setup)
+14. [Google Drive integration](#google-drive-integration)
+15. [Settings & preferences](#settings--preferences)
+16. [Keyboard shortcuts](#keyboard-shortcuts)
+17. [Privacy & data handling](#privacy--data-handling)
+18. [Troubleshooting](#troubleshooting)
+19. [Known limitations](#known-limitations)
 
 ---
 
@@ -154,6 +162,46 @@ This sends the verse text to Google Translate's public endpoint. Disabled by def
 
 ---
 
+## Split Sandhi (word separation)
+
+Sanskrit verses fuse words together through sandhi (e.g. `तपोवनम्` = `तपस् + वनम्`). The **✂️ Split Sandhi** button (on every Sanskrit verse, next to Show Meanings) separates them.
+
+**How it works — accuracy first, with honest fallback:**
+
+1. **Real morphology** — it first sends the verse text to the **University of Hyderabad Heritage segmenter**, an academic Sanskrit morphological analyzer, routed through your own Cloudflare Worker (the same one used for Cloud OCR). The badge shows "University of Hyderabad Heritage segmenter ✓" when this succeeds.
+2. **On-device fallback** — if the service is unreachable, it falls back to a built-in rule-based assistant that handles the reliable cases (avagraha `ऽ`, visarga sandhi). The badge then says "Guided assistant".
+
+**The overlay lets you edit the result directly:**
+
+- A **live split-out line** below the original verse shows the current split joined together, updating as you merge/split
+- Each separated word is a chip showing its **meaning translated** in your chosen language beneath it
+- A **Meaning in: ગુ Gujarati / हि Hindi / EN English** toggle switches all word meanings (defaults to Gujarati; remembers your choice)
+- **Tap a word** to also see its full **Monier-Williams dictionary** entry, and **🔊** to hear it
+- **· merge ·** between any two words joins them back
+- **✂** on a word splits it further (a picker lets you choose where)
+- **🔊 Chant all padas** speaks the separated words in sequence
+- **💾 Save** remembers your split for that verse; **🔄 Re-split from API** re-queries; **↺ Reset** restores the original
+
+**Honest limitation:** Sanskrit segmentation is inherently ambiguous — even the academic engine returns the *ranked best* analysis, not a guaranteed-correct one. And per-word translations come from Google Translate, which is weak on isolated/inflected Sanskrit words — treat the inline translation as a quick gloss and the tap-for-dictionary (Monier-Williams) as the more reliable source. The split/merge editing exists precisely so you have the final say. Treat all of it as a study aid.
+
+Setup: Split Sandhi reuses your Cloud OCR Worker URL. If you haven't set that up (see [Cloud OCR setup](#cloud-ocr-setup)), it uses the on-device assistant only. Per-word meanings require online lookups to be enabled (same consent as Show Meanings).
+
+---
+
+## Correcting language & text
+
+Automatic script detection is good but not perfect, especially on OCR'd pages. Two manual overrides give you the final say, and both **persist** (saved in your browser):
+
+**Language override** — **long-press any word** (or right-click on desktop) to open a picker:
+- Set that word to **Sanskrit / Hindi / Gujarati**, or back to **Auto-detect**
+- Or **set the whole line's language** — this is what controls the **narration voice** (voice is chosen per line)
+
+Use this when a Sanskrit verse is being read in the Hindi voice, or a word shows the wrong dictionary.
+
+**Text correction** — when OCR garbles a verse, use **[Re-OCR a region](#re-ocr-a-region)** (in Document View) to fix the actual text. Corrections are keyed to the original text and survive re-processing.
+
+---
+
 ## Vedabase deep links
 
 For recognized scriptures (Śrīmad-Bhāgavatam, Bhagavad-gītā), each verse gets a 📖 link to the official Vedabase entry:
@@ -201,6 +249,29 @@ After processing, a small badge near each source shows which engine processed it
 - **📱 Local** (grey) — Tesseract.js fallback
 
 A confidence banner appears for low-quality results (< 60% confidence) — verify against the original page.
+
+You can tap the engine badge any time to see a **per-page diagnostic**: which engine OCR'd each page, your current settings, and why cloud failed (if it did).
+
+---
+
+## Re-OCR a region
+
+When OCR mis-reads part of a page — most commonly an **inline Sanskrit verse** embedded in Gujarati/Hindi prose — you can re-OCR just that area instead of the whole page.
+
+**In Document View**, each page has a **🔍 Re-OCR a region** button:
+
+1. Tap it, then **drag a box** over the text that was mis-read
+2. A dialog shows the **cropped image** and runs OCR automatically
+3. Choose the **language** for that region — **Sanskrit only** (default, best for verses), Gujarati only, Hindi only, or Auto
+4. Choose the **engine** — ☁️ Google Vision (if configured) or 📱 Local
+5. Edit the result **by hand** in the text box if needed
+6. Pick **which line to replace** and tap **✓ Replace line text**
+
+The correction is saved and survives re-processing.
+
+**Why this helps:** OCR engines assign one dominant script per visual line, so short inline Sanskrit gets misread as the surrounding script. Cropping just the verse and forcing **Sanskrit-only** removes that conflict and usually reads the verse correctly. If the scan is poor, you can also just type the correction directly — re-OCR is optional.
+
+This works with **local OCR too** — no cloud account needed for the on-device option.
 
 ---
 
@@ -352,6 +423,8 @@ Desktop only:
 | Feature | Sends data to | When |
 |---------|---------------|------|
 | **Cloud OCR** | Cloudflare Worker → Google Vision (or OCR.space) | Each page processed (only when toggle is ON) |
+| **Re-OCR a region** | Cloudflare Worker → Google Vision (or OCR.space) | When you re-OCR a selected region with a cloud engine (local option sends nothing) |
+| **Split Sandhi** | Cloudflare Worker → UoH Heritage segmenter (verse text only, no files); Google Translate for per-word meanings | When you tap "Split Sandhi" (segmenter falls back to on-device if unreachable; meanings need online lookups enabled) |
 | **Show Meanings** | Cologne University MW API + Google Translate | When you tap "Show Meanings" |
 | **Translate verse** | Google Translate (public endpoint) | When you tap "Translate verse" or use layout B/C |
 | **Vedabase link** | vedabase.io (link only, no content) | When you tap the 📖 link (opens in new tab) |
@@ -386,17 +459,24 @@ Usually means the document has no embedded text. Solutions:
 
 ### Cloud OCR shows "Local (cloud failed)"
 
-Something went wrong with cloud OCR; it fell back to local. Check browser console for the specific error.
-Common causes:
+**First, tap the engine badge** — it now shows a per-page diagnostic: your current settings (Cloud ON/OFF, fallback ON/OFF), which engine OCR'd each page, and the run log with the specific failure reason. This tells you exactly what happened.
+
+If a page genuinely fell back to local, common causes:
 - Worker URL wrong or Worker not deployed
 - Google API key invalid or restrictions blocking it
 - ALLOWED_ORIGIN on Worker doesn't match your app URL
 - Free quota exceeded
 - Network down
 
+Note: the badge reflects the **last processing run**. Turning Cloud OCR on does *not* re-OCR already-loaded pages — you must re-process the page (or use **Re-OCR a region** for a targeted fix).
+
 ### Sanskrit being read as Gujarati (or vice versa)
 
-This is a known OCR limitation: inline script-switching within a single line confuses every OCR engine. Standalone verses work; short embedded quotes may misread. Verify against Document View.
+Two fixes:
+1. **Quick fix (classification):** long-press the word → set its language, or "Set line → Sanskrit" to fix the narration voice. See [Correcting language & text](#correcting-language--text).
+2. **Root fix (garbled text):** if the text itself is wrong from OCR, use [Re-OCR a region](#re-ocr-a-region) in Document View to re-read just that verse with Sanskrit-only hints.
+
+The underlying cause is a known OCR limitation: inline script-switching within a single line confuses every OCR engine. Standalone verses work; short embedded quotes may misread.
 
 ### "Drive Picker error"
 
@@ -430,11 +510,12 @@ Things this app **does not** and **cannot** do well:
 - **Vedic pitch accents (svara marks)** — Web Speech API can't render them. Pre-recorded chanting audio would be needed.
 - **Real-time collaboration** — no shared state across devices/users.
 - **Note-taking** — bookmarks (★) only; no annotations or highlights.
-- **Inline script-switching OCR** — short embedded Sanskrit quotes in Gujarati prose often misread (limitation of all OCR engines, not specific to this app).
+- **Inline script-switching OCR** — short embedded Sanskrit quotes in Gujarati prose often misread (limitation of all OCR engines, not specific to this app). Mitigated by [Re-OCR a region](#re-ocr-a-region) with Sanskrit-only hints, and manual text/language correction.
 - **Vedabase content scraping** — BBT-copyrighted; we deep-link to the official site only, never copy text.
 - **Translation quality for technical Sanskrit** — Google Translate handles colloquial Sanskrit poorly. Use the MW dictionary for word meanings, treat full-verse auto-translation as approximate.
+- **Sandhi splitting is not guaranteed correct** — the Heritage segmenter gives the ranked best analysis, but Sanskrit segmentation is inherently ambiguous. The on-device fallback is heuristic only. Always verify with the built-in split/merge editing. See [Split Sandhi](#split-sandhi-word-separation).
 - **Offline-first PWA install** — the file works offline once loaded, but proper PWA install with home-screen icon requires the GitHub Pages bundle.
-- **Persistent translation cache** — currently per-session. Reloading the page loses cached translations.
+- **Persistent translation cache** — currently per-session. Reloading the page loses cached translations. (Language/text corrections and saved sandhi splits *do* persist.)
 
 ---
 
@@ -467,6 +548,7 @@ cloudflare-worker-google-ocr.js   # paste this into a Cloudflare Worker
 ## Credits & sources
 
 - **Monier-Williams dictionary**: Cologne South Asia Studies / cologne-digital-sanskrit-lexicon
+- **Sandhi segmentation**: University of Hyderabad Sanskrit Heritage / Saṃsādhanī tools (sanskrit.uohyd.ac.in)
 - **OCR**: Tesseract.js (local), Google Cloud Vision (cloud)
 - **DOCX parsing**: mammoth.js
 - **PDF rendering**: pdf.js (Mozilla)
