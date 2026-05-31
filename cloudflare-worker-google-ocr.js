@@ -225,6 +225,16 @@ function normalizeSandhiJson(parsed) {
 // (vs TEXT_DETECTION which targets scenes/photos). Better for scriptures.
 // ----------------------------------------------------------------------------
 async function handleOcr(request, env) {
+  // Optional language hints override via ?hints=sa,gu  (comma-separated BCP-47).
+  // Used by the per-region re-OCR feature to request e.g. Sanskrit-only.
+  const reqUrl = new URL(request.url);
+  const hintsParam = reqUrl.searchParams.get('hints');
+  let languageHints = ['sa', 'gu', 'hi'];
+  if (hintsParam) {
+    const parsed = hintsParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
+    if (parsed.length) languageHints = parsed;
+  }
+
   const imageBytes = await request.arrayBuffer();
   if (imageBytes.byteLength === 0) {
     return jsonError(400, 'Empty image body', env);
@@ -260,7 +270,7 @@ async function handleOcr(request, env) {
       // Sanskrit-first gives better overall results because the book has
       // frequent inline Sanskrit citations within Gujarati prose.
       imageContext: {
-        languageHints: ['sa', 'gu', 'hi'],
+        languageHints: languageHints,
       },
     }],
   };
