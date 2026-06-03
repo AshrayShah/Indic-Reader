@@ -1,0 +1,40 @@
+# Auto-deploy Indic Reader to Cloudflare on every push to main.
+#
+# One-time setup (GitHub repo → Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   – create at Cloudflare dashboard → My Profile →
+#                            API Tokens → Create Token → use the
+#                            "Edit Cloudflare Workers" template (it covers
+#                            Workers + Pages deploys). Copy the token.
+#   CLOUDFLARE_ACCOUNT_ID  – Cloudflare dashboard → Workers & Pages →
+#                            (right sidebar) Account ID.
+#
+# After adding both secrets, every push to `main` publishes the site, so the
+# live version always matches the repo. You can also run it manually from the
+# Actions tab (workflow_dispatch).
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Uses wrangler.jsonc in the repo (Workers static-assets deploy).
+          # If your site is a Cloudflare *Pages* project instead, replace the
+          # line below with:
+          #   command: pages deploy . --project-name=indic-reader
+          command: deploy
