@@ -1,0 +1,32 @@
+{
+  "name": "Indic Reader",
+  "short_name": "Indic Reader",
+  "description": "Read, study and narrate Sanskrit, Hindi and Gujarati texts: OCR scanned pages, PDFs and DOCX, get word meanings and transliteration, verse-metre (chhand) scansion, sandhi splitting and text-to-speech chanting. Offline, private, no tracking.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1116",
+  "theme_color": "#ff8a3d",
+  "lang": "en-IN",
+  "categories": [
+    "education",
+    "books",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "/index.html"
+}
