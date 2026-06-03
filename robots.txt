@@ -1,5 +1,0 @@
-# Indic Reader — allow all crawlers
-User-agent: *
-Allow: /
-
-Sitemap: https://indic-reader.pages.dev/sitemap.xml
