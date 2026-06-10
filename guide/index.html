@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Guide — Indic Reader | Sanskrit, Hindi &amp; Gujarati Scripture Reader, OCR &amp; Narration</title>
+<meta name="description" content="Complete user guide for Indic Reader — a free, private, offline web app to read, OCR, narrate (text-to-speech), and translate Sanskrit, Hindi, and Gujarati scriptures like the Srimad-Bhagavatam and Bhagavad-gita. Learn OCR, verse-metre scansion, sandhi splitting, word meanings, and Vedabase deep links.">
+<link rel="canonical" href="https://indic-reader.pages.dev/guide/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Indic Reader — User Guide">
+<meta property="og:description" content="How to read, OCR, narrate and translate Sanskrit, Hindi and Gujarati scriptures with Indic Reader — a free, private, offline-capable web app.">
+<meta property="og:url" content="https://indic-reader.pages.dev/guide/">
+<meta property="og:site_name" content="Indic Reader">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Indic Reader — User Guide">
+<meta name="twitter:description" content="How to read, OCR, narrate and translate Sanskrit, Hindi and Gujarati scriptures with Indic Reader.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari&family=Noto+Sans+Gujarati&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Indic Reader — User Guide",
+  "description": "Complete user guide for Indic Reader — a free, private, offline web app to read, OCR, narrate (text-to-speech), and translate Sanskrit, Hindi, and Gujarati scriptures like the Srimad-Bhagavatam and Bhagavad-gita. Learn OCR, verse-metre scansion, sandhi splitting, word meanings, and Vedabase deep links.",
+  "inLanguage": "en",
+  "url": "https://indic-reader.pages.dev/guide/",
+  "about": ["Sanskrit", "Hindi", "Gujarati", "OCR", "Text to speech", "Scripture reading", "Srimad Bhagavatam", "Bhagavad Gita"],
+  "isPartOf": { "@type": "WebApplication", "name": "Indic Reader", "url": "https://indic-reader.pages.dev/", "applicationCategory": "EducationalApplication", "operatingSystem": "Any (web browser)" },
+  "publisher": { "@type": "Organization", "name": "Indic Reader" }
+}
+</script>
+<style>
+  :root{ --bg:#fbf7ef; --panel:#fff; --panel2:#f3ece0; --ink:#2a2118; --muted:#6b6051; --accent:#c0531f; --line:#e3d8c6; --code:#f3ece0; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#1a1712; --panel:#221d16; --panel2:#2a241c; --ink:#ece3d4; --muted:#a99f8d; --accent:#e0703a; --line:#3a3024; --code:#2a241c; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.7;font-size:16px}
+  .wrap{max-width:780px;margin:0 auto;padding:0 18px 80px}
+  .topbar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;z-index:10}
+  .topbar .brand{font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px}
+  .topbar a.app{margin-left:auto;background:var(--accent);color:#fff;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:600;font-size:14px}
+  article{padding-top:8px}
+  h1{font-size:30px;line-height:1.25;margin:18px 0 8px}
+  h2{font-size:23px;margin:34px 0 10px;padding-top:10px;border-top:1px solid var(--line)}
+  h3{font-size:18px;margin:22px 0 8px;color:var(--accent)}
+  h4{font-size:15px;margin:16px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  a{color:var(--accent)}
+  p,li{font-size:16px}
+  ul,ol{padding-left:24px}
+  li{margin:4px 0}
+  code{background:var(--code);padding:2px 5px;border-radius:4px;font-size:14px;font-family:'Noto Sans Devanagari','Noto Sans Gujarati',ui-monospace,SFMono-Regular,Menlo,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+  pre code{background:none;padding:0}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel2)}
+  blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;background:var(--panel2);color:var(--muted);border-radius:0 6px 6px 0}
+  hr{border:none;border-top:1px solid var(--line);margin:26px 0}
+  .devanagari,:lang(sa),:lang(hi){font-family:'Noto Sans Devanagari',serif}
+  .footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+  .refresh-note{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:14px 0 0}
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <span class="brand">📜 Indic Reader <span style="color:var(--muted);font-weight:500;font-size:13px">· User Guide</span></span>
+  <a class="app" href="/">↩ Open the app</a>
+</nav>
+<div class="wrap">
+<p id="guide-refresh" class="refresh-note">Showing the bundled guide — checking GitHub for the latest version…</p>
+<article id="guide-article">
+<h1 id="indic-reader">Indic Reader</h1>
+<p><strong>🌐 Live app: <a href="https://indic-reader.pages.dev/">https://indic-reader.pages.dev/</a></strong></p>
+<p>A single-file web app for reading, narrating, and translating Indic-script scriptures (Sanskrit, Hindi, Gujarati). Works in any modern browser. Everything runs locally on your device by default — no server, no tracking, no cookies. Cloud-based features (OCR, translation, dictionary) are optional and opt-in with explicit consent.</p>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ol>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#loading-documents">Loading documents</a></li>
+<li><a href="#reading--narration">Reading &amp; narration</a></li>
+<li><a href="#layouts-a--b--c">Layouts (A / B / C)</a></li>
+<li><a href="#language-filter">Language filter</a></li>
+<li><a href="#outline--table-of-contents">Outline / table of contents</a></li>
+<li><a href="#word-meanings--translation">Word meanings &amp; translation</a></li>
+<li><a href="#split-sandhi-word-separation">Split Sandhi (word separation)</a></li>
+<li><a href="#correcting-language--text">Correcting language &amp; text</a></li>
+<li><a href="#vedabase-deep-links">Vedabase deep links</a></li>
+<li><a href="#ocr-for-scanned-documents">OCR for scanned documents</a></li>
+<li><a href="#re-ocr-a-region">Re-OCR a region</a></li>
+<li><a href="#cloud-ocr-setup">Cloud OCR setup</a></li>
+<li><a href="#google-drive-integration">Google Drive integration</a></li>
+<li><a href="#settings--preferences">Settings &amp; preferences</a></li>
+<li><a href="#keyboard-shortcuts">Keyboard shortcuts</a></li>
+<li><a href="#privacy--data-handling">Privacy &amp; data handling</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#known-limitations">Known limitations</a></li>
+</ol>
+<hr>
+<h2 id="quick-start">Quick start</h2>
+<ol>
+<li>Open <code>index.html</code> in any modern browser (Chrome, Firefox, Safari, Edge — desktop or mobile)</li>
+<li>Drag a file onto the drop zone, or tap <strong>📁 Choose Files</strong></li>
+<li>For PDFs, select page range, tap <strong>▶ Process Pages</strong></li>
+<li>Use the <strong>▶ Play</strong> button to narrate, or scroll/tap to read</li>
+</ol>
+<p>For scanned PDFs (image-only), turn on <strong>Force OCR</strong> before processing.</p>
+<hr>
+<h2 id="loading-documents">Loading documents</h2>
+<p>Five ways to load content:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>📁 Choose Files</strong></td>
+<td>Pick files from your device — most common path</td>
+</tr>
+<tr>
+<td><strong>📂 Browse</strong></td>
+<td>Open a folder on desktop (File System Access API); falls back to multi-file picker on mobile</td>
+</tr>
+<tr>
+<td><strong>🟢 Drive</strong></td>
+<td>Pick from Google Drive (requires one-time OAuth setup — see <a href="#google-drive-integration">Drive integration</a>)</td>
+</tr>
+<tr>
+<td><strong>✍️ Paste Text</strong></td>
+<td>Paste Sanskrit/Hindi/Gujarati text directly</td>
+</tr>
+<tr>
+<td><strong>Drag &amp; drop</strong></td>
+<td>Drop files anywhere in the page</td>
+</tr>
+<tr>
+<td><strong>Drive share link</strong></td>
+<td>Paste a public Drive URL — file must be set to &quot;Anyone with the link can view&quot;</td>
+</tr>
+</tbody></table>
+<p>Supported file types: PDF, DOCX, TXT, RTF, HTML, XML, images (JPG, PNG, etc.)</p>
+<hr>
+<h2 id="reading--narration">Reading &amp; narration</h2>
+<p>Two views, switchable via the tabs at the top of the reader:</p>
+<ul>
+<li><strong>📝 Text View</strong> — extracted text reflowed for screen reading. One line/verse per row. Each row has a ★ favorite button.</li>
+<li><strong>📄 Document View</strong> — original page rendered as image with text overlay highlighting. Shows the page exactly as printed.</li>
+</ul>
+<h3 id="player-controls-bottom-bar">Player controls (bottom bar)</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>⏮</td>
+<td>Previous line / verse</td>
+</tr>
+<tr>
+<td>▶ / ⏸</td>
+<td>Play / pause narration</td>
+</tr>
+<tr>
+<td>⏹</td>
+<td>Stop narration</td>
+</tr>
+<tr>
+<td>⏭</td>
+<td>Next line / verse</td>
+</tr>
+<tr>
+<td>Page chip</td>
+<td>Tap to jump to a specific page</td>
+</tr>
+</tbody></table>
+<h3 id="narration-toggles">Narration toggles</h3>
+<p>Reading-time toggles live on the floating player:</p>
+<ul>
+<li><strong>🕉 Chant</strong> — slow, contemplative narration speed (overrides per-language sliders)</li>
+<li><strong>Auto-scroll</strong> — scrolls the page automatically as narration progresses</li>
+<li><strong>Pause at skip</strong> — when narration encounters a line in a language you&#39;ve filtered out, pause briefly so you can decide whether to skip or include it</li>
+<li><strong>📖 Continuous</strong> — auto-advance through pages without manual ⏭. In Continuous mode the app now <strong>OCRs the next page just-in-time</strong>: a few lines before the current page ends it prepares the next page in the background, then narration flows straight into it — you no longer have to pre-select every page. Each page prepared this way is written to the OCR cache, so it&#39;s instant (and free of repeat cloud cost) next time.</li>
+</ul>
+<h3 id="reading-preferences-prefs-strip-near-the-layout-control">Reading preferences (Prefs strip, near the Layout control)</h3>
+<p>Set-and-forget options were moved off the bottom player into a compact <strong>Prefs</strong> strip beside Layout:</p>
+<ul>
+<li><strong>📞 Pause on call</strong> — auto-pause narration on a phone call or when the tab is hidden, resume after</li>
+<li><strong>📍 Resume</strong> — remember your position (page, line, word) and offer to continue; reopening a multi-page PDF via <strong>Continue</strong> auto-selects and processes just the page you were on, then jumps to the exact line/word</li>
+<li><strong>🗄 OCR cache</strong> — cache recognized text + word boxes per page so reopening/re-reading is instant and avoids repeat cloud-OCR cost (turning it off clears the cache)</li>
+<li><strong>⚠️ Check OCR</strong> — underline words the OCR engine was unsure about (low confidence) so they&#39;re easy to spot and fix</li>
+</ul>
+<h3 id="line-numbers">Line numbers</h3>
+<p>Text View shows a muted line number in the left gutter of each line, to make it easy to reference a line for correction. The numbers are drawn so they&#39;re <strong>never included when you select or copy text</strong>.</p>
+<h3 id="speed-sliders">Speed sliders</h3>
+<p>Three independent sliders, one per language (Gujarati, Hindi, Sanskrit). Adjust narration speed per script. Sanskrit chanting traditionally slower; Hindi/Gujarati prose can be faster.</p>
+<h3 id="screen-wake-lock">Screen wake lock</h3>
+<p>While narrating, the screen stays on automatically. When you stop narration or close the tab, it releases. Requires HTTPS; some browsers (older Safari) don&#39;t support it and screen behavior falls back to OS default.</p>
+<h3 id="chhand-verse-metre--scansion">Chhand (verse metre) &amp; scansion</h3>
+<p>Each Sanskrit verse shows a metre pill, e.g. <code>📐 Śārdūlavikrīḍita · 38 akṣ</code>. Metre is identified two ways:</p>
+<ul>
+<li><strong>By guru/laghu scansion (rigorous):</strong> the app marks each syllable heavy (guru, –) or light (laghu, ‿) using the actual rules — long vowel, anusvāra/visarga, or a following consonant cluster make a syllable heavy — then matches the heavy/light pattern against known metres (Indravajrā, Upendravajrā, Vaṃśastha, Vasantatilakā, Mālinī, Śārdūlavikrīḍita, Sragdharā). When the pattern matches, the exact metre name is shown with <strong>no &quot;approx.&quot; hedge</strong>.</li>
+<li><strong>By syllable count (fallback):</strong> if no pattern matches, it falls back to count-based families — Anuṣṭubh (32), Gāyatrī (24) shown reliably; Triṣṭubh/Jagatī/long shown as &quot;(approx.)&quot;.</li>
+</ul>
+<p>A verse has two related, <strong>separate</strong> controls:</p>
+<ul>
+<li><strong>📐 Scan</strong> — opens a syllable-by-syllable grid of the whole verse with <strong>–</strong> guru (heavy) / <strong>‿</strong> laghu (light) above each akṣara. This is the dense, rigorous view of the metre.</li>
+<li><strong>🎵 Chant tones</strong> — shows each pāda on its own row, labelled with its recitation tone (▲ high / ◆ mid / ▼ low), with the pāda kept as <strong>readable whole words</strong> and the <strong>–</strong> / <strong>‿</strong> marks sitting on a small line <strong>above each word</strong>. This is the reading-friendly view: it keeps the original chant-mode text (words are never broken into a per-akṣara grid) and simply adds the scansion marks on top. Each pāda has a 🔊 to hear it, and <strong>🎵 Chant whole verse</strong> plays them in sequence.</li>
+</ul>
+<p>The tones are a recitation aid (not canonical Vedic svara — laukika verses carry no textual accent); the guru/laghu marks are the rigorous scansion. Both views share the same scansion engine, so the marks always agree.</p>
+<p>Syllables display with their <strong>full conjunct spelling</strong>: a consonant cluster that opens a word (e.g. the <code>स्</code> of <code>स्वर्ण</code>, the <code>क्</code> of <code>क्षेत्रेषु</code>) is shown attached to the syllable it begins (<code>स्वर्</code>, <code>क्षेत्</code>), while a cluster in the middle of a word closes its syllable (<code>वर्</code>). This is a display refinement only — the heavy/light weights and metre detection are unchanged.</p>
+<p><strong>Honest limit:</strong> scansion is only as accurate as the text. OCR errors (a wrong vowel length, a dropped conjunct) shift the marks, so verify against a clean source for serious study. The metre also shapes chant-mode recitation pacing.</p>
+<hr>
+<h2 id="layouts-a--b--c">Layouts (A / B / C)</h2>
+<p>Top of the reader has a layout selector. Choose what suits your reading style:</p>
+<ul>
+<li><strong>A — Single column</strong> (default): on-demand translation. Tap &quot;Translate verse&quot; on each line if you want it.</li>
+<li><strong>B — Side-by-side</strong>: Sanskrit on the left, translations on the right. Auto-translates as lines scroll into view. Desktop-only — falls back to C below 768px width.</li>
+<li><strong>C — Stacked pairs</strong>: each Sanskrit verse followed immediately by its Gujarati + Hindi + English translation. Auto-translates everything. Best for mobile.</li>
+</ul>
+<p>Choice is saved in your browser; persists across sessions.</p>
+<p>Switching to B or C the first time will prompt for consent (translation sends text to Google Translate&#39;s public endpoint).</p>
+<hr>
+<h2 id="language-filter">Language filter</h2>
+<p>Buttons above the text: <strong>All / ગુ Guj / સં Sans / હિ Hin</strong></p>
+<ul>
+<li>Filters which lines are visible AND which lines are narrated</li>
+<li>Useful when reading scripture with both Sanskrit verses and Gujarati commentary — you can hear just the Sanskrit, or just the commentary</li>
+</ul>
+<hr>
+<h2 id="outline--table-of-contents">Outline / table of contents</h2>
+<p>For DOCX files, the <strong>📑 Outline</strong> button appears in the reader header. Tap it to see the document&#39;s structure as a navigable list.</p>
+<p>The outline shows different things depending on the document:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>When used</th>
+<th>What you see</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Headings</strong></td>
+<td>DOCX uses Word&#39;s Heading 1/2/3 styles</td>
+<td>Hierarchical TOC indented by heading level</td>
+</tr>
+<tr>
+<td><strong>Author page breaks</strong></td>
+<td>DOCX has explicit page breaks (Ctrl+Enter in Word)</td>
+<td>&quot;Page 1, Page 2, …&quot; matching author intent</td>
+</tr>
+<tr>
+<td><strong>Auto-chunked</strong></td>
+<td>Document has neither headings nor page breaks</td>
+<td>&quot;Chunk 1, Chunk 2, …&quot; — each ≈500 words</td>
+</tr>
+</tbody></table>
+<p>Tap any entry to scroll the reader to that section. Brief highlight pulse shows where you landed.</p>
+<hr>
+<h2 id="word-meanings--translation">Word meanings &amp; translation</h2>
+<h3 id="show-meanings-sanskrit-only">Show Meanings (Sanskrit only)</h3>
+<p>Below each Sanskrit verse, tap <strong>Show Meanings</strong> to look up each word:</p>
+<ol>
+<li>Queries the Cologne University Monier-Williams dictionary (the authoritative Sanskrit lexicon)</li>
+<li>Returns English definitions, then auto-translates them to Gujarati</li>
+<li>Cached per-session — repeated lookups are instant</li>
+</ol>
+<p>Source badge per word:</p>
+<ul>
+<li><strong>MW</strong> (green) — from Monier-Williams (authoritative)</li>
+<li><strong>GT</strong> (grey) — Google Translate fallback (less reliable for technical Sanskrit terms)</li>
+</ul>
+<h3 id="translate-verse">Translate verse</h3>
+<p>Below each line, tap <strong>🌐 Translate verse</strong> to get full-verse translations:</p>
+<ul>
+<li>Gujarati, Hindi, and English translations all shown</li>
+<li>Each has a 🔊 button to hear it spoken in that language&#39;s voice</li>
+<li>Cached per source — same verse won&#39;t be translated twice</li>
+</ul>
+<p>This sends the verse text to Google Translate&#39;s public endpoint. Disabled by default; first use prompts for consent.</p>
+<h3 id="translate-page-gujarati--hindi">Translate page (Gujarati ↔ Hindi)</h3>
+<p>In Text View, three buttons in the controls row translate the <strong>current page</strong>, always <strong>leaving Sanskrit verses untouched</strong>:</p>
+<ul>
+<li><strong>🌐 ગુ→हि</strong> — translate the page&#39;s Gujarati lines into Hindi</li>
+<li><strong>🌐 हि→ગુ</strong> — translate the page&#39;s Hindi lines into Gujarati</li>
+<li><strong>🌐 →EN</strong> — translate the page&#39;s Gujarati <em>and</em> Hindi lines into English</li>
+</ul>
+<p>The translation appears as a block under each translated line (the original stays, so narration and study are unaffected). Tap the same button again to hide. Sanskrit lines are never sent. Results are cached on-device. Uses Google Translate&#39;s public endpoint under the same consent as Translate verse.</p>
+<h3 id="bookmark-notes">Bookmark notes</h3>
+<p>Tap the ☆ on any line to bookmark it. In the <strong>Library</strong>, each bookmark shows the <strong>full line text</strong> (not just a snippet), and you can attach a <strong>note</strong> to it (tap &quot;＋ Add note&quot;). Notes and the full text are stored on-device.</p>
+<hr>
+<h2 id="split-sandhi-word-separation">Split Sandhi (word separation)</h2>
+<p>Sanskrit verses fuse words together through sandhi (e.g. <code>तपोवनम्</code> = <code>तपस् + वनम्</code>). The <strong>✂️ Split Sandhi</strong> button (on every Sanskrit verse, next to Show Meanings) separates them.</p>
+<p><strong>How it works — accuracy first, with honest fallback:</strong></p>
+<ol>
+<li><strong>Real morphology</strong> — it first sends the verse text to the <strong>University of Hyderabad Heritage segmenter</strong>, an academic Sanskrit morphological analyzer, routed through your own Cloudflare Worker (the same one used for Cloud OCR). The badge shows &quot;University of Hyderabad Heritage segmenter ✓&quot; when this succeeds.</li>
+<li><strong>On-device fallback</strong> — if the service is unreachable, it falls back to a built-in rule-based assistant that handles the reliable cases (avagraha <code>ऽ</code>, visarga sandhi). The badge then says &quot;Guided assistant&quot;.</li>
+</ol>
+<p><strong>The overlay lets you edit the result directly:</strong></p>
+<ul>
+<li>A <strong>live split-out line</strong> below the original verse shows the current split joined together, updating as you merge/split</li>
+<li>Each separated word is a chip showing its <strong>meaning translated</strong> in your chosen language beneath it</li>
+<li>A <strong>Meaning in: ગુ Gujarati / हि Hindi / EN English</strong> toggle switches all word meanings (defaults to Gujarati; remembers your choice)</li>
+<li><strong>Tap a word</strong> to also see its full <strong>Monier-Williams dictionary</strong> entry, and <strong>🔊</strong> to hear it</li>
+<li><strong>· merge ·</strong> between any two words joins them back</li>
+<li><strong>✂</strong> on a word opens an inline picker right in that row — tap a cut-point between letters to split there (no separate popup)</li>
+<li><strong>🔊 Chant all padas</strong> speaks the separated words in sequence</li>
+<li><strong>💾 Save</strong> remembers your split for that verse; <strong>🔄 Re-split from API</strong> re-queries; <strong>↺ Reset</strong> restores the original</li>
+</ul>
+<p><strong>Honest limitation:</strong> Sanskrit segmentation is inherently ambiguous — even the academic engine returns the <em>ranked best</em> analysis, not a guaranteed-correct one. And per-word translations come from Google Translate, which is weak on isolated/inflected Sanskrit words — treat the inline translation as a quick gloss and the tap-for-dictionary (Monier-Williams) as the more reliable source. The split/merge editing exists precisely so you have the final say. Treat all of it as a study aid.</p>
+<p>Setup: Split Sandhi reuses your Cloud OCR Worker URL. If you haven&#39;t set that up (see <a href="#cloud-ocr-setup">Cloud OCR setup</a>), it uses the on-device assistant only. Per-word meanings require online lookups to be enabled (same consent as Show Meanings).</p>
+<hr>
+<h2 id="correcting-language--text">Correcting language &amp; text</h2>
+<p>Automatic script detection is good but not perfect, especially on OCR&#39;d pages. Two manual overrides give you the final say, and both <strong>persist</strong> (saved in your browser):</p>
+<p><strong>Language override</strong> — <strong>long-press any word</strong> (or right-click on desktop) to open a picker:</p>
+<ul>
+<li>Set that word to <strong>Sanskrit / Hindi / Gujarati</strong>, or back to <strong>Auto-detect</strong></li>
+<li>Or <strong>set the whole line&#39;s language</strong> — this is what controls the <strong>narration voice</strong> (voice is chosen per line)</li>
+</ul>
+<p>Use this when a Sanskrit verse is being read in the Hindi voice, or a word shows the wrong dictionary.</p>
+<p><strong>Text correction</strong> — when OCR garbles a verse, use <strong><a href="#re-ocr-a-region">Re-OCR a region</a></strong> (in Document View) to fix the actual text. Corrections are keyed to the original text and survive re-processing.</p>
+<hr>
+<h2 id="vedabase-deep-links">Vedabase deep links</h2>
+<p>For recognized scriptures (Śrīmad-Bhāgavatam, Bhagavad-gītā), each verse gets a 📖 link to the official Vedabase entry:</p>
+<ul>
+<li>Filename hint helps: name files like <code>SB_3.25.pdf</code> or <code>BG_2.pdf</code> for auto-detection</li>
+<li>Source chip shows &quot;SB — set canto/ch&quot; — tap to enter chapter/verse context</li>
+<li>Once context is set, every verse line has <code>📖 SB 3.25.6 on vedabase.io ↗</code> pointing to the official commentary</li>
+</ul>
+<p><strong>Manual reference entry (when auto-detection fails):</strong> if a Sanskrit verse has no working link, it shows a <strong>🔗 Set reference</strong> button. Tap it to enter the details by hand:</p>
+<ul>
+<li>Choose the scripture (Śrīmad-Bhāgavatam or Bhagavad-gītā)</li>
+<li>Enter <strong>Skand</strong>, <strong>Adhyay</strong>, and <strong>Shlok</strong> (for BG, just Adhyay and Shlok)</li>
+<li>A live preview shows the resulting vedabase.io link before you save</li>
+<li>Once saved, the verse shows its 📖 link, and a <strong>✎</strong> appears to edit it later</li>
+</ul>
+<p>Your manual references are saved (keyed to the verse text) and persist across reloads and re-processing. Use <strong>↺ Clear my reference</strong> in the dialog to remove one.</p>
+<p>Vedabase content is BBT-copyrighted; we deep-link only, never copy text.</p>
+<hr>
+<h2 id="ocr-for-scanned-documents">OCR for scanned documents</h2>
+<p>OCR (Optical Character Recognition) extracts text from images and scanned PDFs.</p>
+<h3 id="when-to-use-ocr">When to use OCR</h3>
+<table>
+<thead>
+<tr>
+<th>File type</th>
+<th>OCR needed?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Digital PDF with embedded text</td>
+<td><strong>No</strong> — text extracted directly (perfect accuracy)</td>
+</tr>
+<tr>
+<td>Scanned PDF (image-only)</td>
+<td><strong>Yes</strong> — turn on <strong>Force OCR</strong></td>
+</tr>
+<tr>
+<td>JPEG / PNG of a page</td>
+<td><strong>Yes</strong> — runs automatically</td>
+</tr>
+<tr>
+<td>DOCX / RTF / TXT / HTML</td>
+<td><strong>No</strong> — text already structured</td>
+</tr>
+</tbody></table>
+<h3 id="force-ocr-toggle">Force OCR toggle</h3>
+<p>Located near &quot;Clear All&quot; on the main screen. Turn ON when:</p>
+<ul>
+<li>You uploaded a scanned PDF and see &quot;No Indic text found&quot;</li>
+<li>The PDF&#39;s embedded text is garbage (font mapping broken)</li>
+<li>You want to re-run OCR with a different engine</li>
+</ul>
+<h3 id="local-ocr-default">Local OCR (default)</h3>
+<p>Uses Tesseract.js running entirely in your browser. Free, private, works offline once language data is cached. Slower (~5–15 seconds per page) and less accurate than cloud OCR on poor scans.</p>
+<p>Language data (~5MB for Gujarati + Devanagari) is downloaded from <code>tessdata.projectnaptha.com</code> on first OCR, then cached.</p>
+<h3 id="ocr-quality-indicator">OCR quality indicator</h3>
+<p>After processing, a small badge near each source shows which engine processed it:</p>
+<ul>
+<li><strong>☁️ Google</strong> (green) — Google Cloud Vision (via your Cloudflare Worker)</li>
+<li><strong>☁️ OCR.space</strong> (green) — OCR.space free tier</li>
+<li><strong>📱 Local</strong> (grey) — Tesseract.js fallback</li>
+</ul>
+<p>A confidence banner appears for low-quality results (&lt; 60% confidence) — verify against the original page.</p>
+<p>You can tap the engine badge any time to see a <strong>per-page diagnostic</strong>: which engine OCR&#39;d each page, your current settings, and why cloud failed (if it did).</p>
+<hr>
+<h2 id="re-ocr-a-region">Re-OCR a region</h2>
+<p>When OCR mis-reads part of a page — most commonly an <strong>inline Sanskrit verse</strong> embedded in Gujarati/Hindi prose — you can re-OCR just that area instead of the whole page.</p>
+<p><strong>In Document View</strong>, each page has a <strong>🔍 Re-OCR a region</strong> button. It is <strong>pinned to the top of the page</strong> (sticky), so it stays visible no matter how tall the page image is — you never have to scroll to the bottom to find it.</p>
+<ol>
+<li>Tap it, then <strong>drag a box</strong> over the text that was mis-read</li>
+<li>A dialog shows the <strong>cropped image</strong> and runs OCR automatically</li>
+<li>Choose the <strong>language</strong> for that region — <strong>Sanskrit only</strong> (default, best for verses), Gujarati only, Hindi only, or Auto</li>
+<li>Choose the <strong>engine</strong> — ☁️ Google Vision (if configured) or 📱 Local</li>
+<li>Edit the result <strong>by hand</strong> in the text box if needed</li>
+<li>Apply it in one of three ways (below)</li>
+</ol>
+<p><strong>Three ways to apply the result:</strong></p>
+<ul>
+<li><strong>Replace whole line(s)</strong> — tick one or more lines in the checklist and tap <strong>✓ Replace selected line(s)</strong>. For a multi-line region, tick all the lines it covers; the OCR result is split by line and matched to them top-to-bottom. (More result lines than ticked → the surplus folds into the last line; fewer → the extra ticked lines are removed.)</li>
+<li><strong>Replace only part of a line</strong> — tap <strong>✎ Replace only part of a line</strong>, choose the line (its full text loads into an editor), <strong>select the portion to fix</strong> (or place the cursor), tap <strong>⤵ Put OCR result here</strong>, then <strong>✓ Save line</strong>. Use this when the crop covers just a fragment, so the rest of the line is preserved.</li>
+<li><strong>Single line</strong> — tick exactly one line and replace it, as before.</li>
+</ul>
+<p>All edits and removals are <strong>keyed to the original text</strong> and persist across re-processing.</p>
+<p><strong>Why this helps:</strong> OCR engines assign one dominant script per visual line, so short inline Sanskrit gets misread as the surrounding script. Cropping just the verse and forcing <strong>Sanskrit-only</strong> removes that conflict and usually reads the verse correctly. If the scan is poor, you can also just type the correction directly — re-OCR is optional.</p>
+<p>This works with <strong>local OCR too</strong> — no cloud account needed for the on-device option.</p>
+<h3 id="fix-a-single-line-from-text-view">Fix a single line from Text View</h3>
+<p>You don&#39;t have to go to Document View to fix one line. In Text View each line has a small <strong>✏️</strong> button (next to the ☆); it glows amber when the line contains low-confidence words. Tapping it opens <strong>Fix line</strong>:</p>
+<ul>
+<li><strong>Edit the text by hand</strong> in the box (correct script font), then <strong>✓ Save correction</strong> — the fix is keyed to the line&#39;s original text and persists across re-processing and reopen, even if you edit the same line again later.</li>
+<li><strong>🔁 Re-OCR this line</strong> — pick an <strong>engine</strong> (☁️ Google Vision or 📱 Local) and a <strong>language</strong> (Sanskrit / Gujarati / Hindi / Auto); it crops just that line from the page image, runs OCR, and drops the result into the editable box for review before you save. Recovers a mangled verse without reprocessing the whole PDF.</li>
+</ul>
+<p>(Re-OCR needs the line&#39;s position on the page image, so it&#39;s available for OCR&#39;d PDF/image pages; for pasted or native-text PDFs the dialog offers manual edit only.)</p>
+<h3 id="low-confidence-flagging">Low-confidence flagging</h3>
+<p>With <strong>⚠️ Check OCR</strong> on (Prefs strip), words the OCR engine reported low confidence for get a wavy amber underline (a tooltip shows the confidence). Both Google Vision and local Tesseract provide per-word confidence; it&#39;s stored in the OCR cache so flags persist on reopen.</p>
+<hr>
+<h2 id="cloud-ocr-setup">Cloud OCR setup</h2>
+<p>Cloud OCR significantly improves accuracy on poor scans, photos, and books with marginalia. <strong>Optional and opt-in</strong> — disabled by default.</p>
+<h3 id="why-a-proxy">Why a proxy?</h3>
+<p>Google Cloud Vision blocks direct browser calls (CORS). The app uses a free <strong>Cloudflare Worker</strong> as a proxy between your browser and Google. Your API key lives on Cloudflare as an encrypted secret — never exposed in browser source code.</p>
+<h3 id="one-time-setup--10-minutes">One-time setup (≈ 10 minutes)</h3>
+<p>Two parts:</p>
+<h4 id="part-1-get-a-google-cloud-vision-api-key">Part 1: Get a Google Cloud Vision API key</h4>
+<ol>
+<li>Go to <a href="https://console.cloud.google.com">console.cloud.google.com</a></li>
+<li>Create a new project (e.g. <code>indic-reader</code>)</li>
+<li><strong>Billing → Link a billing account</strong> (free tier covers 1,000 calls/month at $0, but a card is required)</li>
+<li><strong>Billing → Budgets &amp; alerts → Create budget</strong>: set amount to <strong>$1</strong> with default thresholds — this emails you BEFORE any charge</li>
+<li><strong>APIs &amp; Services → Library</strong>: search &quot;Cloud Vision API&quot;, click ENABLE</li>
+<li><strong>APIs &amp; Services → Credentials → + Create credentials → API key</strong></li>
+<li>Copy the key. Click &quot;Edit API key&quot;:<ul>
+<li><strong>API restrictions</strong>: Restrict key → check ONLY &quot;Cloud Vision API&quot;</li>
+<li><strong>Application restrictions</strong>: None (Worker calls don&#39;t preserve referrer)</li>
+<li>SAVE</li>
+</ul>
+</li>
+</ol>
+<h4 id="part-2-deploy-a-cloudflare-worker">Part 2: Deploy a Cloudflare Worker</h4>
+<ol>
+<li>Go to <a href="https://dash.cloudflare.com">dash.cloudflare.com</a> → Workers &amp; Pages</li>
+<li>Create → Hello World → name it (e.g. <code>indic-ocr-proxy</code>) → Deploy</li>
+<li>Open Worker → Edit code → delete the template → paste the entire <code>cloudflare-worker-google-ocr.js</code> file</li>
+<li>Save and Deploy</li>
+<li>Worker → Settings → Variables and Secrets, add two:<ul>
+<li><code>GOOGLE_API_KEY</code> = (your key from Part 1) — mark as <strong>Encrypt</strong> (Secret)</li>
+<li><code>ALLOWED_ORIGIN</code> = your app&#39;s URL (e.g. <code>https://indic-reader.pages.dev</code>) — use <code>*</code> only for testing</li>
+</ul>
+</li>
+<li>Save</li>
+</ol>
+<h4 id="part-3-configure-the-app">Part 3: Configure the app</h4>
+<ol>
+<li>In the app, tap <strong>⚙ Cloud OCR</strong> (gear icon near Cloud OCR toggle)</li>
+<li>Provider: <strong>⭐ Cloudflare Worker → Google Vision</strong></li>
+<li>Paste your Worker URL (e.g. <code>https://indic-ocr-proxy.YOUR.workers.dev</code>)</li>
+<li>Tap <strong>🔍 Test connection</strong> — should show <code>✓ Connection works. Detected: &quot;TEST&quot;</code></li>
+<li><strong>Save credentials</strong></li>
+<li>Flip <strong>☁️ Cloud OCR</strong> toggle ON</li>
+</ol>
+<h3 id="ocrspace-alternative-gujarati-only-no-setup">OCR.space alternative (Gujarati only, no setup)</h3>
+<p>For Gujarati-only documents and quick testing:</p>
+<ol>
+<li>Get a free key at <a href="https://ocr.space/ocrapi/freekey">ocr.space/ocrapi/freekey</a></li>
+<li>⚙ Cloud OCR → choose OCR.space → paste key → save</li>
+</ol>
+<p>Free tier: 25,000 pages/month. No Sanskrit support in free tier.</p>
+<h3 id="cost-reality">Cost reality</h3>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Free tier</th>
+<th>After free tier</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Google Cloud Vision</td>
+<td>1,000 calls/mo</td>
+<td>$1.50 per 1,000 calls</td>
+</tr>
+<tr>
+<td>OCR.space</td>
+<td>25,000 calls/mo</td>
+<td>Need paid plan</td>
+</tr>
+<tr>
+<td>Cloudflare Workers</td>
+<td>100,000 calls/day</td>
+<td>$0.50 per million</td>
+</tr>
+</tbody></table>
+<p>For personal reading (a few dozen pages a day), you&#39;ll never exceed any free tier. Set the $1 Google budget alert and you can&#39;t be surprised.</p>
+<h3 id="saving-credentials-to-your-devices-password-manager">Saving credentials to your device&#39;s password manager</h3>
+<p>In the Cloud OCR settings dialog, <strong>🔒 Save to device</strong> stores your API key (OCR.space) or Worker URL (Google proxy) in your operating system&#39;s secure password store via the browser&#39;s Credential Management API — <strong>Google Password Manager</strong> on Android, <strong>iCloud Keychain</strong> on iOS where supported, or the <strong>Windows</strong> credential store. It&#39;s protected by your device lock, and the app never sees it again except when you tap <strong>↺ Restore from device</strong>. Availability depends on your browser/OS; where programmatic storage isn&#39;t supported the key simply stays in on-device storage as before.</p>
+<hr>
+<h2 id="google-drive-integration">Google Drive integration</h2>
+<p><strong>Optional and OAuth-gated.</strong> Lets you pick files directly from your Drive instead of downloading then uploading.</p>
+<h3 id="setup">Setup</h3>
+<ol>
+<li>In Google Cloud Console (same project as Vision), enable:<ul>
+<li><strong>Google Drive API</strong></li>
+<li><strong>Google Picker API</strong></li>
+</ul>
+</li>
+<li>Create credentials:<ul>
+<li><strong>OAuth 2.0 Client ID</strong> (Web application)<ul>
+<li>Authorized JavaScript origins: your app URL (e.g. <code>https://indic-reader.pages.dev</code>)</li>
+</ul>
+</li>
+<li><strong>API key</strong> (separate from the Vision key)<ul>
+<li>API restrictions: Drive API + Picker API</li>
+<li>Application restrictions: HTTP referrers → <code>https://YOUR-APP-URL/*</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>OAuth consent screen</strong> → set up as External + Testing → add your own email as Test User</li>
+<li>In the app: tap <strong>🟢 Drive</strong> → enter OAuth Client ID and API key → save</li>
+</ol>
+<h3 id="usage">Usage</h3>
+<ul>
+<li>Tap <strong>🟢 Drive</strong> → <strong>🔐 Sign in &amp; pick from Drive</strong></li>
+<li>Google&#39;s Picker UI opens; select files</li>
+<li>Files are downloaded into the app and processed</li>
+</ul>
+<p>Drive integration is fiddly to set up. If you have trouble, the local file picker works perfectly without any setup.</p>
+<hr>
+<h2 id="settings--preferences">Settings &amp; preferences</h2>
+<p>Saved automatically in browser localStorage:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Theme</td>
+<td>Auto</td>
+<td>Light / dark / follow system</td>
+</tr>
+<tr>
+<td>Layout</td>
+<td>A</td>
+<td>Single column</td>
+</tr>
+<tr>
+<td>Voice per language</td>
+<td>First available</td>
+<td>Use <strong>Voice Settings</strong> to choose</td>
+</tr>
+<tr>
+<td>Speed per language</td>
+<td>1.0×</td>
+<td>Three sliders</td>
+</tr>
+<tr>
+<td>Bookmarks (★ stars)</td>
+<td>None</td>
+<td>Per-line favorites</td>
+</tr>
+<tr>
+<td>Show Meanings consent</td>
+<td>Off</td>
+<td>Required for Sanskrit dictionary</td>
+</tr>
+<tr>
+<td>Translate consent</td>
+<td>Off</td>
+<td>Required for verse translation</td>
+</tr>
+<tr>
+<td>Cloud OCR consent</td>
+<td>Off</td>
+<td>Required for cloud OCR</td>
+</tr>
+<tr>
+<td>Drive credentials</td>
+<td>None</td>
+<td>OAuth Client ID + API key</td>
+</tr>
+<tr>
+<td>Cloud OCR credentials</td>
+<td>None</td>
+<td>Worker URL or OCR.space key</td>
+</tr>
+</tbody></table>
+<h3 id="reset-privacy-choices">Reset privacy choices</h3>
+<p>Bottom of the page → &quot;Reset privacy choices&quot; — revokes all consents and re-shows the privacy banner. Doesn&#39;t delete credentials.</p>
+<h3 id="clear-all">Clear All</h3>
+<p>Top of the file-input section → wipes loaded documents and in-memory state. Doesn&#39;t touch settings or credentials.</p>
+<hr>
+<h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
+<p>Desktop only:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Space</strong></td>
+<td>Play / pause narration</td>
+</tr>
+<tr>
+<td><strong>←</strong></td>
+<td>Previous line</td>
+</tr>
+<tr>
+<td><strong>→</strong></td>
+<td>Next line</td>
+</tr>
+<tr>
+<td><strong>↑</strong></td>
+<td>Decrease speed</td>
+</tr>
+<tr>
+<td><strong>↓</strong></td>
+<td>Increase speed</td>
+</tr>
+<tr>
+<td><strong>T</strong></td>
+<td>Toggle Text / Document view</td>
+</tr>
+<tr>
+<td><strong>F</strong></td>
+<td>Cycle language filter (All → Guj → Sans → Hin → All)</td>
+</tr>
+<tr>
+<td><strong>S</strong></td>
+<td>Toggle Auto-scroll</td>
+</tr>
+<tr>
+<td><strong>Esc</strong></td>
+<td>Stop narration / close dialogs</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="privacy--data-handling">Privacy &amp; data handling</h2>
+<p><strong>Files stay on your device by default.</strong> The app runs entirely in your browser — there&#39;s no Indic Reader server.</p>
+<h3 id="whats-sent-externally-and-when">What&#39;s sent externally and when</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Sends data to</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cloud OCR</strong></td>
+<td>Cloudflare Worker → Google Vision (or OCR.space)</td>
+<td>Each page processed (only when toggle is ON)</td>
+</tr>
+<tr>
+<td><strong>Re-OCR a region</strong></td>
+<td>Cloudflare Worker → Google Vision (or OCR.space)</td>
+<td>When you re-OCR a selected region with a cloud engine (local option sends nothing)</td>
+</tr>
+<tr>
+<td><strong>Fix a single line / Continuous next-page OCR</strong></td>
+<td>Cloudflare Worker → Google Vision (or OCR.space)</td>
+<td>When you re-OCR one line, or when Continuous mode prepares the next page, with a cloud engine (local option sends nothing)</td>
+</tr>
+<tr>
+<td><strong>Split Sandhi</strong></td>
+<td>Cloudflare Worker → UoH Heritage segmenter (verse text only, no files); Google Translate for per-word meanings</td>
+<td>When you tap &quot;Split Sandhi&quot; (segmenter falls back to on-device if unreachable; meanings need online lookups enabled)</td>
+</tr>
+<tr>
+<td><strong>Show Meanings</strong></td>
+<td>Cologne University MW API + Google Translate</td>
+<td>When you tap &quot;Show Meanings&quot;</td>
+</tr>
+<tr>
+<td><strong>Translate verse</strong></td>
+<td>Google Translate (public endpoint)</td>
+<td>When you tap &quot;Translate verse&quot; or use layout B/C</td>
+</tr>
+<tr>
+<td><strong>Translate page (Gu↔Hi, →EN)</strong></td>
+<td>Google Translate (public endpoint)</td>
+<td>When you tap 🌐 ગુ→हि / हि→ગુ / →EN (Gujarati/Hindi text only; Sanskrit verses not sent)</td>
+</tr>
+<tr>
+<td><strong>Vedabase link</strong></td>
+<td>vedabase.io (link only, no content)</td>
+<td>When you tap the 📖 link (opens in new tab)</td>
+</tr>
+<tr>
+<td><strong>Drive Picker</strong></td>
+<td>Google (drive.google.com)</td>
+<td>When you tap Drive sign-in</td>
+</tr>
+<tr>
+<td><strong>First-launch CDN</strong></td>
+<td>cdn.jsdelivr.net</td>
+<td>Loading PDF/OCR/DOCX libraries (cached afterward)</td>
+</tr>
+<tr>
+<td><strong>Tesseract language data</strong></td>
+<td>tessdata.projectnaptha.com</td>
+<td>First local OCR run (cached afterward)</td>
+</tr>
+</tbody></table>
+<h3 id="whats-not-sent">What&#39;s NOT sent</h3>
+<ul>
+<li>No analytics or telemetry</li>
+<li>No tracking pixels</li>
+<li>No cookies</li>
+<li>No data sent to Anthropic or any other party</li>
+<li>Your text is never sent anywhere unless you explicitly trigger an external feature</li>
+</ul>
+<h3 id="stored-only-on-your-device-never-uploaded">Stored only on your device (never uploaded)</h3>
+<p>Your preferences and manual corrections live in this browser&#39;s <code>localStorage</code> and are never sent anywhere: language/text overrides, line text corrections (inline edit / re-OCR), <strong>manual verse references</strong> (the canto/chapter/verse you enter for vedabase.io links), saved sandhi splits, translation cache, bookmark notes, voice/theme preferences, the Prefs toggles, and Drive credentials. The <strong>OCR cache</strong>, the <strong>last-opened document</strong> (for the Continue button), and your <strong>reading position</strong> are stored in this browser&#39;s IndexedDB, on-device only. Optionally, the <strong>🔒 Save to device</strong> button places your OCR credential in your OS password manager (Google Password Manager / iCloud Keychain / Windows), not in the app. A manual verse reference only ever produces a vedabase.io link, sent solely when <em>you</em> tap that link.</p>
+<h3 id="your-data-rights-gdprdpdp">Your data rights (GDPR/DPDP)</h3>
+<ul>
+<li><strong>Access/Portability</strong>: use &quot;Copy Text&quot; to export all extracted content</li>
+<li><strong>Erasure</strong>: &quot;Clear All&quot; wipes in-memory state; browser &quot;Clear site data&quot; wipes preferences</li>
+<li><strong>Withdraw consent</strong>: &quot;Reset privacy choices&quot; link at the bottom</li>
+</ul>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="no-indic-text-found">&quot;No Indic text found&quot;</h3>
+<p>Usually means the document has no embedded text. Solutions:</p>
+<ol>
+<li>Turn ON <strong>Force OCR</strong>, re-process</li>
+<li>If the file is a Google Docs PDF, font mapping may be broken — Force OCR fixes it</li>
+<li>For images: make sure the script is clearly readable (clean scan, no glare)</li>
+</ol>
+<h3 id="cloud-ocr-shows-local-cloud-failed">Cloud OCR shows &quot;Local (cloud failed)&quot;</h3>
+<p><strong>First, tap the engine badge</strong> — it now shows a per-page diagnostic: your current settings (Cloud ON/OFF, fallback ON/OFF), which engine OCR&#39;d each page, and the run log with the specific failure reason. This tells you exactly what happened.</p>
+<p>If a page genuinely fell back to local, common causes:</p>
+<ul>
+<li>Worker URL wrong or Worker not deployed</li>
+<li>Google API key invalid or restrictions blocking it</li>
+<li>ALLOWED_ORIGIN on Worker doesn&#39;t match your app URL</li>
+<li>Free quota exceeded</li>
+<li>Network down</li>
+</ul>
+<p>Note: the badge reflects the <strong>last processing run</strong>. Turning Cloud OCR on does <em>not</em> re-OCR already-loaded pages — you must re-process the page (or use <strong>Re-OCR a region</strong> for a targeted fix).</p>
+<h3 id="sanskrit-being-read-as-gujarati-or-vice-versa">Sanskrit being read as Gujarati (or vice versa)</h3>
+<p>Two fixes:</p>
+<ol>
+<li><strong>Quick fix (classification):</strong> long-press the word → set its language, or &quot;Set line → Sanskrit&quot; to fix the narration voice. See <a href="#correcting-language--text">Correcting language &amp; text</a>.</li>
+<li><strong>Root fix (garbled text):</strong> if the text itself is wrong from OCR, use <a href="#re-ocr-a-region">Re-OCR a region</a> in Document View to re-read just that verse with Sanskrit-only hints.</li>
+</ol>
+<p>The underlying cause is a known OCR limitation: inline script-switching within a single line confuses every OCR engine. Standalone verses work; short embedded quotes may misread.</p>
+<h3 id="drive-picker-error">&quot;Drive Picker error&quot;</h3>
+<p>Usually means API key restrictions are too strict. Quick fixes:</p>
+<ol>
+<li>Edit the Drive Picker API key in Google Cloud Console</li>
+<li>Application restrictions → temporarily set to &quot;None&quot;</li>
+<li>Wait 5 minutes for propagation</li>
+<li>Reload the app</li>
+</ol>
+<p>If still broken, just skip Drive — use the regular file picker.</p>
+<h3 id="narration-sounds-wrong--weird-voice">Narration sounds wrong / weird voice</h3>
+<p>System TTS voices vary by device. Tap <strong>Voice Settings</strong> in the reader and pick a better voice:</p>
+<ul>
+<li>Android: install &quot;Google Text-to-Speech&quot; + the language packs</li>
+<li>Windows: Settings → Time &amp; Language → Speech → Add voices</li>
+<li>macOS/iOS: System Settings → Accessibility → Spoken Content → System Voice</li>
+</ul>
+<p>For Sanskrit specifically, Hindi voices are usually the best fallback since true Sanskrit TTS is rare.</p>
+<h3 id="page-wont-scroll-on-mobile">Page won&#39;t scroll on mobile</h3>
+<p>Pull down firmly to refresh. If the player bar is hiding the bottom of content, try landscape orientation. The bottom bar&#39;s height adapts but can occasionally need a refresh.</p>
+<h3 id="app-still-shows-the-old-version-number-after-an-update">App still shows the old version number after an update</h3>
+<p>The footer shows the running <code>APP_VERSION</code> (e.g. <code>Indic Reader v66</code>). If you deployed a new build but still see the old number — even in incognito or another browser — the problem is almost always that <strong>the new files are not actually live yet</strong>, not a browser cache:</p>
+<ol>
+<li><strong>Confirm the deploy happened.</strong> Open the raw page in a fresh <strong>incognito</strong> window (no service worker there) and check the footer version, or <code>View source</code> and search for <code>APP_VERSION</code>. A fresh browser fetches straight from the server, so whatever it shows <em>is</em> what the server is serving. If that&#39;s still old, the deploy didn&#39;t go live.</li>
+<li><strong>Check the right branch / build.</strong> On Cloudflare Pages or GitHub Pages, make sure the commit landed on the <strong>production branch</strong> and the build/deploy actually ran and succeeded (not a preview deployment URL).</li>
+<li><strong>Bump both version strings.</strong> <code>APP_VERSION</code> in <code>index.html</code> <em>and</em> <code>CACHE_NAME</code> in <code>sw.js</code> should be bumped together so the service-worker cache is invalidated.</li>
+<li><strong>Edge cache.</strong> The included <code>_headers</code> sets <code>Cache-Control: no-cache</code> on <code>/</code>, <code>index.html</code>, <code>sw.js</code>, <code>manifest.json</code>, <code>robots.txt</code> and <code>sitemap.xml</code>, so the HTML and worker always revalidate. If you host elsewhere, ensure your host isn&#39;t serving HTML with a long cache TTL; purge the CDN cache after deploying.</li>
+<li><strong>Stuck service worker (already-installed users only):</strong> the worker is network-first for the page and calls <code>skipWaiting()</code>, so a normal reload while online should update it. If a device is truly stuck, browser Settings → <em>Clear site data</em> for the domain forces a clean fetch.</li>
+</ol>
+<hr>
+<h2 id="known-limitations">Known limitations</h2>
+<p>Things this app <strong>does not</strong> and <strong>cannot</strong> do well:</p>
+<ul>
+<li><strong>Vedic pitch accents (svara marks)</strong> — Web Speech API can&#39;t render them. Pre-recorded chanting audio would be needed.</li>
+<li><strong>Real-time collaboration</strong> — no shared state across devices/users.</li>
+<li><strong>Note-taking</strong> — bookmarks (★) now support a text note and store the full line, but there are no inline highlights or freehand annotations.</li>
+<li><strong>Inline script-switching OCR</strong> — short embedded Sanskrit quotes in Gujarati prose often misread (limitation of all OCR engines, not specific to this app). Mitigated by <a href="#re-ocr-a-region">Re-OCR a region</a> or <strong>Fix a single line</strong> with Sanskrit-only hints, and manual text/language correction.</li>
+<li><strong>Continuous next-page OCR gap</strong> — for an <em>uncached</em> page, narration can outrun the background OCR on large scans/slow connections, causing a brief pause at the page boundary (the few-line lead usually hides it; cached pages are instant).</li>
+<li><strong>Device password manager support</strong> — <strong>🔒 Save to device</strong> relies on the browser&#39;s Credential Management API; it works on Chromium (Android/Windows/desktop) and where iOS supports it, but isn&#39;t available in every browser.</li>
+<li><strong>Vedabase content scraping</strong> — BBT-copyrighted; we deep-link to the official site only, never copy text.</li>
+<li><strong>Translation quality for technical Sanskrit</strong> — Google Translate handles colloquial Sanskrit poorly. Use the MW dictionary for word meanings, treat full-verse auto-translation as approximate.</li>
+<li><strong>Sandhi splitting is not guaranteed correct</strong> — the Heritage segmenter gives the ranked best analysis, but Sanskrit segmentation is inherently ambiguous. The on-device fallback is heuristic only. Always verify with the built-in split/merge editing. See <a href="#split-sandhi-word-separation">Split Sandhi</a>.</li>
+<li><strong>Offline-first PWA install</strong> — the file works offline once loaded, but proper PWA install with home-screen icon requires the GitHub Pages bundle.</li>
+<li><strong>Persistent translation cache</strong> — currently per-session. Reloading the page loses cached translations. (Language/text corrections, bookmark notes, the OCR cache, and saved sandhi splits <em>do</em> persist.)</li>
+</ul>
+<hr>
+<h2 id="file-structure--what-each-file-is-for">File structure — what each file is for</h2>
+<p>The project ships in a few bundles. Here&#39;s what every file does and whether you need it.</p>
+<h3 id="core-app-the-only-truly-required-file">Core app (the only truly required file)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>index.html</code></td>
+<td><strong>The entire application</strong> — all HTML, CSS, and JavaScript in one self-contained file (~350 KB). Open it directly in a browser and everything works: reading, narration, OCR, meanings, sandhi splitting. Everything else is optional enhancement.</td>
+<td>✅ Yes</td>
+</tr>
+</tbody></table>
+<h3 id="offline--install-support-pwa">Offline &amp; install support (PWA)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sw.js</code></td>
+<td><strong>Service worker.</strong> Caches the app so it loads offline after the first visit, and powers &quot;install to home screen&quot;. It is <strong>network-first for the page</strong> (so a new deploy is fetched immediately when online) and cache-first for static assets. The version string inside (e.g. <code>indic-reader-v66</code>) is bumped on every update to invalidate the old cache.</td>
+<td>Optional (enables offline)</td>
+</tr>
+<tr>
+<td><code>manifest.json</code></td>
+<td><strong>PWA manifest</strong> — app name, description, icons, theme color, display mode, categories. Lets phones offer &quot;Add to Home Screen&quot; with a proper icon, and feeds app/store listings.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>icon-192.png</code></td>
+<td>App icon (192×192) for home screen / launcher.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>icon-512.png</code></td>
+<td>App icon (512×512) for splash screen / high-DPI, and the link-preview image.</td>
+<td>Optional</td>
+</tr>
+</tbody></table>
+<h3 id="discoverability-seo">Discoverability (SEO)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>robots.txt</code></td>
+<td>Allows all search-engine crawlers and points them to the sitemap.</td>
+<td>Recommended when hosting</td>
+</tr>
+<tr>
+<td><code>sitemap.xml</code></td>
+<td>Lists the site&#39;s URL(s) for search engines. Submit it in Google Search Console / Bing Webmaster Tools to speed up indexing.</td>
+<td>Recommended when hosting</td>
+</tr>
+</tbody></table>
+<p>The <code>&lt;head&gt;</code> of <code>index.html</code> also carries SEO metadata: a descriptive <code>&lt;title&gt;</code> and <code>&lt;meta name=&quot;description&quot;&gt;</code>/<code>keywords</code>, a <code>&lt;link rel=&quot;canonical&quot;&gt;</code>, <strong>Open Graph</strong> and <strong>Twitter card</strong> tags (for link previews), and <strong>JSON-LD</strong> structured data (<code>WebApplication</code>) describing the app, its features and languages. If you deploy on a domain other than <code>indic-reader.pages.dev</code>, update the canonical / <code>og:url</code> / <code>twitter</code> image URLs, the <code>robots.txt</code> sitemap line, and the <code>&lt;loc&gt;</code> in <code>sitemap.xml</code> to match.</p>
+<h3 id="hosting--security-cloudflare-pages--github-pages">Hosting &amp; security (Cloudflare Pages / GitHub Pages)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_headers</code></td>
+<td><strong>Security headers</strong> for Cloudflare Pages — Content-Security-Policy (restricts which domains the app may contact), plus standard hardening headers. This is what allows the Worker, dictionary, and translate endpoints while blocking everything else.</td>
+<td>Recommended when hosting</td>
+</tr>
+<tr>
+<td><code>_headers-no-csp</code></td>
+<td>A <strong>fallback</strong> version with the CSP relaxed, in case the strict policy ever blocks something on your setup. Rename to <code>_headers</code> only if you hit a CSP problem.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>.github/workflows/deploy.yml</code></td>
+<td><strong>GitHub Actions</strong> workflow that auto-deploys the repo to GitHub Pages on every push. Only relevant if you host on GitHub.</td>
+<td>Optional (GitHub only)</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>This documentation file.</td>
+<td>Reference</td>
+</tr>
+</tbody></table>
+<h3 id="cloud-ocr--sandhi-the-cloudflare-worker">Cloud OCR &amp; Sandhi (the Cloudflare Worker)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cloudflare-worker-google-ocr.js</code></td>
+<td><strong>The Worker proxy</strong> — paste this into a Cloudflare Worker (it is <em>not</em> part of the website; it runs separately on Cloudflare&#39;s edge). It does two jobs: (1) proxies page/region images to <strong>Google Cloud Vision</strong> for OCR, and (2) proxies verse text to the <strong>UoH Heritage segmenter</strong> for Split Sandhi. Both are needed only because browsers can&#39;t call those services directly (CORS). Needs your Google API key set as a Worker secret.</td>
+<td>Only for Cloud OCR &amp; API sandhi</td>
+</tr>
+<tr>
+<td><code>cloudflare-worker-azure-ocr.js</code></td>
+<td>An <strong>alternative Worker</strong> using Azure Computer Vision instead of Google, if you prefer Azure. Use one or the other, not both.</td>
+<td>Optional alternative</td>
+</tr>
+</tbody></table>
+<h3 id="convenience-bundles--local-testing">Convenience bundles &amp; local testing</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>indic-reader-github.zip</code></td>
+<td>Zipped copy of the GitHub Pages bundle (app + PWA + headers + workflow), ready to upload to a repo.</td>
+<td>Convenience</td>
+</tr>
+<tr>
+<td><code>indic-reader-standalone.zip</code></td>
+<td>Zipped copy of the standalone/PWA bundle for offline or self-hosting.</td>
+<td>Convenience</td>
+</tr>
+<tr>
+<td><code>serve.py</code></td>
+<td>A tiny <strong>local web server</strong> (Python, in the standalone/PWA bundle) — run <code>python serve.py</code> to test the app at <code>localhost</code> with correct headers, since some features need <code>http://</code> rather than <code>file://</code>.</td>
+<td>Local testing only</td>
+</tr>
+<tr>
+<td><code>android-wrapper/</code>, <code>ios-wrapper/</code>, <code>windows-wrapper/</code></td>
+<td>Thin <strong>native wrappers</strong> (in the standalone/PWA bundle) that load the app in a WebView, if you want to package it as an installable app for each platform.</td>
+<td>Optional</td>
+</tr>
+</tbody></table>
+<h3 id="minimal-setups">Minimal setups</h3>
+<ul>
+<li><strong>Just try it:</strong> <code>index.html</code> alone.</li>
+<li><strong>Offline-capable website:</strong> <code>index.html</code> + <code>sw.js</code> + <code>manifest.json</code> + both icons + <code>_headers</code> (and <code>robots.txt</code> + <code>sitemap.xml</code> for search engines).</li>
+<li><strong>Full features (Cloud OCR + API sandhi):</strong> the above, plus deploy <code>cloudflare-worker-google-ocr.js</code> to a Cloudflare Worker and paste its URL into the app&#39;s Cloud OCR settings.</li>
+</ul>
+<hr>
+<h2 id="credits--sources">Credits &amp; sources</h2>
+<ul>
+<li><strong>Monier-Williams dictionary</strong>: Cologne South Asia Studies / cologne-digital-sanskrit-lexicon</li>
+<li><strong>Sandhi segmentation</strong>: University of Hyderabad Sanskrit Heritage / Saṃsādhanī tools (sanskrit.uohyd.ac.in)</li>
+<li><strong>OCR</strong>: Tesseract.js (local), Google Cloud Vision (cloud)</li>
+<li><strong>DOCX parsing</strong>: mammoth.js</li>
+<li><strong>PDF rendering</strong>: pdf.js (Mozilla)</li>
+<li><strong>Sanskrit transliteration</strong>: IAST scheme</li>
+<li><strong>Vedabase</strong>: deep links to vedabase.io (BBT Inc.)</li>
+</ul>
+<hr>
+<h2 id="license--copyright">License &amp; copyright</h2>
+<p>App code is provided for educational and personal study use. Scripture texts loaded into the app retain their original copyrights — verify your right to OCR or process any document before doing so. Vedabase content is BBT-copyrighted; this app links to but does not redistribute their text.</p>
+<p>No commercial redistribution of this app or its output.</p>
+
+</article>
+<p class="footer">
+  This is the user guide for <a href="/">Indic Reader</a> — a free, privacy-first reader, OCR, narrator and translator for Sanskrit, Hindi and Gujarati scripture. Everything runs in your browser.
+</p>
+</div>
+<!-- Markdown parser (also used by the main app's CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script>
+/* Keep this guide current: the full text above is baked in (so search engines,
+   offline use, and no-JS visitors all get the complete content), and this script
+   then refreshes it from the live README on GitHub. If the fetch or parser fails,
+   the bundled content simply stays. */
+(function(){
+  var SOURCES = [
+    'https://raw.githubusercontent.com/AshrayShah/Indic-Reader/main/README.md',
+    'https://cdn.jsdelivr.net/gh/AshrayShah/Indic-Reader@main/README.md'
+  ];
+  var note = document.getElementById('guide-refresh');
+  function slug(s){
+    return s.replace(/<[^>]+>/g,'')
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+      .toLowerCase().replace(/[^\w\s-]/g,'').trim().replace(/\s/g,'-');
+  }
+  function addIds(html){
+    return html.replace(/<h([1-6])>([\s\S]*?)<\/h\1>/g, function(m,l,inner){ return '<h'+l+' id="'+slug(inner)+'">'+inner+'</h'+l+'>'; });
+  }
+  function tryFetch(i){
+    if(i >= SOURCES.length){ if(note){ note.textContent='Showing the bundled guide (couldn\u2019t reach GitHub).'; } return; }
+    fetch(SOURCES[i], {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); })
+      .then(function(md){
+        if(!window.marked) throw new Error('no parser');
+        var parse = window.marked.parse || window.marked;
+        var html = addIds(parse(md));
+        var art = document.getElementById('guide-article');
+        if(art && html && html.length > 800){ art.innerHTML = html; }
+        if(note){ note.textContent = '\u2713 Up to date with GitHub \u00b7 ' + new Date().toLocaleDateString(); }
+        if(location.hash){ var el = document.getElementById(location.hash.slice(1)); if(el) el.scrollIntoView(); }
+      })
+      .catch(function(){ tryFetch(i+1); });
+  }
+  function start(){ if(window.marked){ tryFetch(0); } else if(note){ note.textContent=''; } }
+  if(document.readyState === 'complete' || document.readyState === 'interactive') start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+</body>
+</html>
