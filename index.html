@@ -1221,7 +1221,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.05';
+const APP_VERSION = '2.06';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1809,6 +1809,58 @@ $('addPaste').onclick = ()=>{
   buildLines();
 };
 $('clearPaste').onclick = ()=> $('pasteArea').value='';
+
+// Preserve structure when pasting from rich sources (Google Docs, web pages,
+// PDFs). A plain <textarea> would receive only text/plain, where mobile
+// browsers often collapse paragraph/bullet structure. So we read the clipboard's
+// text/html (which keeps blocks and lists) and convert it to clean, one-line-
+// per-block text with "• " bullets, inserting that instead.
+function htmlToStructuredText(html){
+  let safe = html;
+  try { if(window.DOMPurify){ safe = DOMPurify.sanitize(html, { USE_PROFILES:{html:true}, FORBID_TAGS:['style','script','head','meta'] }); } } catch(e){}
+  let doc;
+  try { doc = new DOMParser().parseFromString(safe, 'text/html'); } catch(e){ return ''; }
+  if(!doc || !doc.body) return '';
+  const out = [];
+  let buf = '';
+  const flush = () => { const s = buf.replace(/[ \t\u00A0]+/g, ' ').trim(); if(s) out.push(s); buf = ''; };
+  const BLOCK = new Set(['P','DIV','LI','UL','OL','H1','H2','H3','H4','H5','H6','TR','SECTION','ARTICLE','BLOCKQUOTE','PRE','TABLE','FIGCAPTION']);
+  const walk = (node) => {
+    node.childNodes.forEach(ch => {
+      if(ch.nodeType === 3){ buf += ch.nodeValue; }
+      else if(ch.nodeType === 1){
+        const tag = ch.tagName;
+        if(tag === 'BR'){ flush(); return; }
+        if(tag === 'STYLE' || tag === 'SCRIPT') return;
+        const isBlock = BLOCK.has(tag);
+        if(isBlock) flush();
+        if(tag === 'LI') buf += '• ';
+        walk(ch);
+        if(isBlock) flush();
+      }
+    });
+  };
+  walk(doc.body);
+  flush();
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+$('pasteArea').addEventListener('paste', (e) => {
+  const cd = e.clipboardData || window.clipboardData;
+  if(!cd) return;                                  // let the browser handle it
+  let html = '';
+  try { html = cd.getData('text/html') || ''; } catch(_){}
+  if(!html.trim()) return;                          // no rich data → normal plain paste
+  const structured = htmlToStructuredText(html);
+  if(!structured.trim()) return;                    // conversion empty → normal paste
+  e.preventDefault();
+  const ta = e.target;
+  const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const end   = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  ta.value = ta.value.slice(0, start) + structured + ta.value.slice(end);
+  const pos = start + structured.length;
+  try { ta.selectionStart = ta.selectionEnd = pos; } catch(_){}
+});
 $('clearAll').onclick = clearAll;
 
 // ---------- Reopen last document (cached on-device in IndexedDB) ----------
