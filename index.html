@@ -610,8 +610,10 @@
 
   <div id="pasteBox" style="display:none;margin-top:10px">
     <textarea id="pasteArea" placeholder="Paste Gujarati, Hindi, or Sanskrit text here…"></textarea>
-    <div class="row" style="margin-top:6px">
+    <div id="pasteInfo" style="font-size:11px;color:var(--muted);margin-top:4px;min-height:1em"></div>
+    <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px">
       <button class="btn primary" id="addPaste">Add as Source</button>
+      <button class="btn ghost" id="splitParas" style="font-size:12px" title="If your text pasted as one block, this re-creates paragraph breaks before each new sentence/number">¶ Restore paragraphs</button>
       <button class="btn ghost" id="clearPaste">Clear</button>
     </div>
   </div>
@@ -1221,7 +1223,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.06';
+const APP_VERSION = '2.07';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1808,7 +1810,6 @@ $('addPaste').onclick = ()=>{
   $('pasteBox').style.display='none';
   buildLines();
 };
-$('clearPaste').onclick = ()=> $('pasteArea').value='';
 
 // Preserve structure when pasting from rich sources (Google Docs, web pages,
 // PDFs). A plain <textarea> would receive only text/plain, where mobile
@@ -1847,20 +1848,58 @@ function htmlToStructuredText(html){
 
 $('pasteArea').addEventListener('paste', (e) => {
   const cd = e.clipboardData || window.clipboardData;
-  if(!cd) return;                                  // let the browser handle it
-  let html = '';
+  const info = $('pasteInfo');
+  if(!cd){ return; }
+  let html = '', plain = '';
   try { html = cd.getData('text/html') || ''; } catch(_){}
-  if(!html.trim()) return;                          // no rich data → normal plain paste
-  const structured = htmlToStructuredText(html);
-  if(!structured.trim()) return;                    // conversion empty → normal paste
-  e.preventDefault();
-  const ta = e.target;
-  const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
-  const end   = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
-  ta.value = ta.value.slice(0, start) + structured + ta.value.slice(end);
-  const pos = start + structured.length;
-  try { ta.selectionStart = ta.selectionEnd = pos; } catch(_){}
+  try { plain = cd.getData('text/plain') || ''; } catch(_){}
+  if(html.trim()){
+    const structured = htmlToStructuredText(html);
+    if(structured.trim()){
+      e.preventDefault();
+      const ta = e.target;
+      const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+      const end   = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+      ta.value = ta.value.slice(0, start) + structured + ta.value.slice(end);
+      const pos = start + structured.length;
+      try { ta.selectionStart = ta.selectionEnd = pos; } catch(_){}
+      if(info){ info.textContent = '✓ Rich text detected — structure preserved.'; info.style.color = 'var(--ok)'; }
+      return;
+    }
+  }
+  // Plain-text only: the source app didn't share formatting. Tell the user and
+  // let the default paste happen; they can tap "Restore paragraphs" if needed.
+  if(info){
+    const lineCount = (plain.match(/\n/g) || []).length;
+    info.textContent = lineCount > 0
+      ? 'ℹ️ Plain text pasted (' + (lineCount+1) + ' lines). If paragraphs look merged, tap "¶ Restore paragraphs".'
+      : 'ℹ️ Source shared plain text with no line breaks. Tap "¶ Restore paragraphs" to split it.';
+    info.style.color = 'var(--muted)';
+  }
 });
+
+// Manual recovery for plain-text pastes that arrived as one block: insert a
+// paragraph break before a verse/section number like "(૧૪)" and after sentence
+// terminators, so structure is restored even when the source app gave no HTML.
+$('splitParas').onclick = () => {
+  const ta = $('pasteArea');
+  let t = (ta.value || '').replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ');
+  if(!t.trim()){ return; }
+  // Break BEFORE a parenthesised number (Gujarati or ASCII digits): "(૧૪)" / "(14)"
+  t = t.replace(/\s*(\([\u0AE6-\u0AEF0-9]+\))/g, '\n$1');
+  // Break AFTER a sentence terminator when followed by more text
+  t = t.replace(/([।॥.?!])\s+(?=\S)/g, '$1\n');
+  // Normalise bullets and collapse excess blank lines
+  t = t.replace(/[\u2022\u25CF\u25E6\u2023\u2043\u2219]\s*/g, '\n• ')
+       .replace(/\n{3,}/g, '\n\n')
+       .replace(/^\n+/, '')
+       .split('\n').map(s => s.trim()).filter((s, i, a) => s.length || (i>0 && a[i-1].length)).join('\n');
+  ta.value = t;
+  const info = $('pasteInfo');
+  if(info){ info.textContent = '✓ Restored ' + (t.split('\n').filter(x=>x.trim()).length) + ' lines — review, then Add as Source.'; info.style.color = 'var(--ok)'; }
+};
+
+$('clearPaste').onclick = ()=> { $('pasteArea').value=''; const i=$('pasteInfo'); if(i) i.textContent=''; };
 $('clearAll').onclick = clearAll;
 
 // ---------- Reopen last document (cached on-device in IndexedDB) ----------
