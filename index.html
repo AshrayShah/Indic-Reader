@@ -1218,7 +1218,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.03';
+const APP_VERSION = '2.04';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1789,11 +1789,17 @@ $('addPaste').onclick = ()=>{
     return;
   }
   const id = uid();
-  addSource({id, name:'Pasted text', type:'paste', text:t});
+  // Preserve the pasted structure: normalise bullet glyphs to "• ", keep blank
+  // lines as paragraph breaks, and mark the source so buildLines won't re-flow it.
+  const norm = t
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u2022\u25CF\u25E6\u2023\u2043\u2219]\s*/g, '• ')   // various bullets → "• "
+    .replace(/\n{3,}/g, '\n\n');
+  addSource({id, name:'Pasted text', type:'paste', text:norm, preserveBreaks:true});
   state.pagesData.push({
     pageIdx: 1,
-    htmlPage: `<div style="white-space:pre-wrap;line-height:1.9">${escapeHtml(t)}</div>`,
-    text: t, items: [], usedOCR: false, sourceId: id
+    htmlPage: `<div style="white-space:pre-wrap;line-height:1.9">${escapeHtml(norm)}</div>`,
+    text: norm, items: [], usedOCR: false, sourceId: id, preserveBreaks:true
   });
   $('pasteArea').value='';
   $('pasteBox').style.display='none';
@@ -3641,9 +3647,13 @@ function buildLines(silent){
         let bboxCursor = 0;
         // First pass: split on newlines as before
         const rawLines = (pd.text || '').split(/\r?\n/);
-        // Second pass: for any block of consecutive Sanskrit lines, re-merge
-        // and re-split on dandas to get proper verse-pada boundaries.
-        const refinedLines = refineWithDandas(rawLines);
+        // Second pass: for OCR/plain sources, re-merge consecutive Sanskrit lines
+        // and re-split on dandas for proper verse-pada boundaries. For STRUCTURED
+        // sources (pasted/DOCX/HTML), the line & paragraph breaks ARE the
+        // author's intent, so we keep them verbatim — only splitting an
+        // over-long line at sentence terminators, never merging across breaks.
+        const structured = !!(pd.preserveBreaks || s.preserveBreaks);
+        const refinedLines = structured ? splitStructuredLines(rawLines) : refineWithDandas(rawLines);
         refinedLines.forEach(raw => {
           let t = raw.trim();
           if(!t) return;
@@ -3826,6 +3836,24 @@ function wordLangInContext(tok, lineLang){
 // wraps across 2-3 printed lines on the page.
 //
 // For non-Devanagari lines, or Devanagari prose without dandas, leave alone.
+// Preserve authored structure (pasted / DOCX / HTML): keep every line break the
+// author made. A blank line stays a blank line (paragraph gap). A non-blank line
+// is split into sentences ONLY if it's long enough to be a wrapped paragraph
+// (so a short heading or bullet stays whole), and is never merged with its
+// neighbours. Sentence terminators kept: Gujarati/Hindi danda ।॥, ., ?, !, :.
+function splitStructuredLines(rawLines){
+  const out = [];
+  for(const raw of rawLines){
+    const line = (raw || '').replace(/\s+$/,'');
+    if(!line.trim()){ out.push(''); continue; }          // keep paragraph gaps
+    if(line.length <= 60){ out.push(line); continue; }    // short line = heading/bullet → keep whole
+    // Long line: split after sentence terminators, keeping the terminator
+    const parts = line.split(/(?<=[।॥.?!:])\s+/);
+    parts.forEach(p => { if(p.trim()) out.push(p.trim()); });
+  }
+  return out;
+}
+
 function refineWithDandas(rawLines){
   const out = [];
   let sanskritBuffer = [];   // accumulating consecutive Sanskrit-verse lines
