@@ -3,7 +3,7 @@
 // BUMP THIS VERSION whenever index.html changes. The new version invalidates
 // the old cache automatically — users will receive the update on next reload
 // without needing to manually clear site data.
-const CACHE_NAME = 'indic-reader-2.04';
+const CACHE_NAME = 'indic-reader-2.05';
 
 const APP_SHELL = [
   './',

@@ -737,6 +737,9 @@
     <button class="btn ghost" id="xlatePageGuHi" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati lines to Hindi (Sanskrit verses are left unchanged)">🌐 ગુ→हि</button>
     <button class="btn ghost" id="xlatePageHiGu" style="font-size:12px;padding:6px 10px" title="Translate this page's Hindi lines to Gujarati (Sanskrit verses are left unchanged)">🌐 हि→ગુ</button>
     <button class="btn ghost" id="xlatePageEn" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati and Hindi lines to English (Sanskrit verses are left unchanged)">🌐 →EN</button>
+    <label class="btn ghost" id="speakXlateWrap" style="font-size:12px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer" title="When narrating, also read each line's translation aloud">
+      <input type="checkbox" id="speakXlate" style="margin:0"> 🔊 Read translation
+    </label>
     <span id="copyStatus" style="font-size:11px;color:var(--muted);align-self:center"></span>
     <span style="flex:1"></span>
     <span id="ocrEngineIndicator" onclick="showOcrLog()" style="display:none;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600;cursor:pointer" title="Tap to see OCR diagnostic log"></span>
@@ -1218,7 +1221,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.04';
+const APP_VERSION = '2.05';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -6772,6 +6775,34 @@ function gujaratiToDevanagari(text){
   return out;
 }
 
+// Speak a plain string (a translation) in a given language, picking the best
+// available voice. Used to narrate the EN/Hi/Gu translation after its source
+// line. Resolves when done (or immediately if speech is unavailable).
+function speakPlainText(text, lang, session, onEnd){
+  if(!text || !text.trim()){ onEnd && onEnd(); return; }
+  const langTag = lang === 'en' ? 'en-IN' : lang === 'hi' ? 'hi-IN' : lang === 'gu' ? 'gu-IN' : 'en-IN';
+  let speak = text;
+  // Gujarati target on a device with no Gujarati voice → transliterate so it's audible.
+  if(lang === 'gu' && typeof hasNativeGujaratiVoice === 'function' && !hasNativeGujaratiVoice()){
+    speak = (typeof gujaratiToDevanagari === 'function' ? gujaratiToDevanagari(speak) : speak);
+  }
+  const u = TTS.makeUtter(speak);
+  if(!u){ onEnd && onEnd(); return; }
+  // Pick a matching voice if the selector has one
+  try {
+    const cands = (typeof listIndicCandidates === 'function' && lang !== 'en') ? listIndicCandidates(lang === 'gu' ? 'guj' : 'hin') : [];
+    if(cands && cands.length) u.voice = cands[0];
+  } catch(e){}
+  u.lang = (lang === 'gu' && typeof hasNativeGujaratiVoice === 'function' && !hasNativeGujaratiVoice()) ? 'hi-IN' : langTag;
+  u.rate = state.speeds[lang === 'gu' ? 'guj' : lang === 'hi' ? 'hin' : 'hin'] || 1;
+  if(lang === 'en') u.rate = 1;
+  u.pitch = 1; u.volume = 1;
+  let done = false;
+  const fin = () => { if(!done){ done = true; onEnd && onEnd(); } };
+  u.onend = fin; u.onerror = fin;
+  try { TTS.speak(u); } catch(e){ fin(); }
+}
+
 function speakLine(li, startWi, session, onEnd){
   const ln = state.lines[li];
   if(!ln){ onEnd&&onEnd(); return; }
@@ -7254,6 +7285,12 @@ async function playStep(overrideFilterOnce, session){
     });
     if(session !== state.session) return; // critical: tap-jump replaced us
     if(!state.playing) return;
+    // Read the translation aloud (if shown and enabled) right after its source line.
+    if(state.speakTranslation && ln.translation && ln.translationLang){
+      await new Promise(res => speakPlainText(ln.translation, ln.translationLang, session, res));
+      if(session !== state.session) return;
+      if(!state.playing) return;
+    }
     state.current = {lineIdx: li+1, wordIdx:0};
   }
   if(session !== state.session) return;
@@ -8686,7 +8723,12 @@ async function translatePage(dir){
 
   // Toggle off if this direction's blocks are already showing.
   const existing = document.querySelectorAll(`.page-translation[data-dir="${dir}"]`);
-  if(existing.length){ existing.forEach(e => e.remove()); if(btn) btn.style.borderColor = 'var(--line)'; return; }
+  if(existing.length){
+    existing.forEach(e => e.remove());
+    state.lines.forEach(ln => { if(ln.translation) { delete ln.translation; delete ln.translationLang; } });
+    if(btn) btn.style.borderColor = 'var(--line)';
+    return;
+  }
 
   const targets = [];
   state.lines.forEach((ln, idx) => { if(ln.pageIdx === pageIdx && D.from.indexOf(ln.lang) >= 0) targets.push(idx); });
@@ -8712,6 +8754,8 @@ async function translatePage(dir){
       state.meaningCache[cacheKey] = out;
     }
     if(out){
+      const ln2 = state.lines[idx];
+      if(ln2){ ln2.translation = out; ln2.translationLang = D.tl; }   // so narration can speak it
       const el = document.querySelector(`.line[data-idx="${idx}"]`);
       if(el && !el.querySelector(`.page-translation[data-dir="${dir}"]`)){
         const block = document.createElement('div');
@@ -9188,6 +9232,12 @@ $('closeOutline').onclick = () => {
 $('xlatePageGuHi').onclick = () => translatePage('gu2hi');
 $('xlatePageHiGu').onclick = () => translatePage('hi2gu');
 $('xlatePageEn').onclick = () => translatePage('2en');
+// Read translation aloud during narration (persisted)
+state.speakTranslation = (function(){ try { return localStorage.getItem('indic_speak_xlate') === '1'; } catch(e){ return false; } })();
+if($('speakXlate')){
+  $('speakXlate').checked = state.speakTranslation;
+  $('speakXlate').onchange = (e)=>{ state.speakTranslation = e.target.checked; try { localStorage.setItem('indic_speak_xlate', e.target.checked ? '1' : '0'); } catch(_){} };
+}
 
 function clearAll(){
   // STOP all in-flight work before tearing down state
