@@ -849,6 +849,11 @@
       <span class="knob"></span>
       <span class="toggle-label">📖 Continuous</span>
     </label>
+    <label class="toggle" title="Keep narrating when the screen turns off or the app goes to the background (where the device allows it). Keeps the screen awake while reading.">
+      <input type="checkbox" id="keepPlayingHidden">
+      <span class="knob"></span>
+      <span class="toggle-label">🔋 Screen-off play</span>
+    </label>
   </div>
 
   <!-- Row 3: Narration speed sliders - all three languages on one line -->
@@ -1223,7 +1228,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.07';
+const APP_VERSION = '2.08';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1794,6 +1799,17 @@ $('addPaste').onclick = ()=>{
     return;
   }
   const id = uid();
+  // A pasted text is a NEW document. If a PDF/image doc is currently open, save
+  // its reading position and keep it in the recent-documents list FIRST, then
+  // start a clean source set — otherwise the paste would append to the PDF,
+  // corrupt the per-document resume key, and mix page data / OCR cache.
+  try { if(state.sources && state.sources.length){ saveResumePos(); } } catch(e){}
+  state.sources = [];
+  state.pagesData = [];
+  state.pdfDoc = null; state.pdfSourceId = null; state.pageCount = 0;
+  try { if(state.selectedPages && state.selectedPages.clear) state.selectedPages.clear(); } catch(e){}
+  state.thumbWindow = 0;
+  state.current = { lineIdx:-1, wordIdx:-1 };
   // Preserve the pasted structure: normalise bullet glyphs to "• ", keep blank
   // lines as paragraph breaks, and mark the source so buildLines won't re-flow it.
   const norm = t
@@ -6214,6 +6230,12 @@ $('pauseSkip').checked = state.pauseSkip;
 $('pauseSkip').onchange = (e)=>{ state.pauseSkip = e.target.checked; try { localStorage.setItem('indic_pauseskip', e.target.checked ? '1' : '0'); } catch(_){} };
 $('continuousMode').checked = state.continuousMode;
 $('continuousMode').onchange = (e)=>{ state.continuousMode = e.target.checked; try { localStorage.setItem('indic_continuous', e.target.checked ? '1' : '0'); } catch(_){} };
+// Keep narrating with the screen off / app backgrounded (persisted)
+state.keepPlayingHidden = (function(){ try { return localStorage.getItem('indic_keepplay') === '1'; } catch(e){ return false; } })();
+if($('keepPlayingHidden')){
+  $('keepPlayingHidden').checked = state.keepPlayingHidden;
+  $('keepPlayingHidden').onchange = (e)=>{ state.keepPlayingHidden = e.target.checked; try { localStorage.setItem('indic_keepplay', e.target.checked ? '1' : '0'); } catch(_){} };
+}
 $('pauseOnCall').checked = state.pauseOnCall;
 $('pauseOnCall').onchange = (e)=>{
   state.pauseOnCall = e.target.checked;
@@ -7485,7 +7507,8 @@ function resumeAfterInterruption(){
   playFromCurrent();                  // continue from the saved position
 }
 document.addEventListener('visibilitychange', () => {
-  if(!state.pauseOnCall) return;      // feature disabled by user
+  if(!state.pauseOnCall) return;            // feature disabled by user
+  if(state.keepPlayingHidden) return;       // user wants narration to continue with screen off
   if(document.hidden) pauseForInterruption();
   else resumeAfterInterruption();
 });
