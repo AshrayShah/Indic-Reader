@@ -859,8 +859,8 @@
   <!-- Row 3: Narration speed sliders - all three languages on one line -->
   <div class="player-row player-speeds">
     <div class="speeds">
-      <label>ગુ <input type="range" id="speedGuj" min=".5" max="2" step=".05" value="1.25"><span id="sgVal">1.25×</span></label>
-      <label>हि <input type="range" id="speedHin" min=".5" max="2" step=".05" value="1.25"><span id="shVal">1.25×</span></label>
+      <label>ગુ <input type="range" id="speedGuj" min=".5" max="2" step=".05" value="1.0"><span id="sgVal">1.0×</span></label>
+      <label>हि <input type="range" id="speedHin" min=".5" max="2" step=".05" value="1.0"><span id="shVal">1.0×</span></label>
       <label>सं <input type="range" id="speedSan" min=".5" max="2" step=".05" value="1.0"><span id="ssVal">1.0×</span></label>
     </div>
   </div>
@@ -1228,7 +1228,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.08';
+const APP_VERSION = '2.09';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1422,7 +1422,7 @@ const state = {
   lines: [],              // {text, lang, words:[{t,lang,charStart,charEnd,bbox?,pageIdx?}]}
   pagesData: [],          // per processed page: {pageIdx, canvas?, items:[{t,bbox}], lineIdxs:[]}
   speeds: (function(){
-    const def = {guj:1.25, san:1.0, hin:1.25};
+    const def = {guj:1.0, san:1.0, hin:1.0};
     try { const s = JSON.parse(localStorage.getItem('indic_speeds') || 'null'); return s ? Object.assign(def, s) : def; }
     catch(e){ return def; }
   })(),
@@ -1814,12 +1814,20 @@ $('addPaste').onclick = ()=>{
   // lines as paragraph breaks, and mark the source so buildLines won't re-flow it.
   const norm = t
     .replace(/\r\n?/g, '\n')
-    .replace(/[\u2022\u25CF\u25E6\u2023\u2043\u2219]\s*/g, '• ')   // various bullets → "• "
+    .replace(/[\u2022\u25CF\u25CB\u25E6\u2023\u2043\u2219\u25AA\u25AB\u25A0\u25A1\u00B7\u2027\u204C\u204D\u2756\u2666\u25C6\u25B8\u25B6\u27A2\u2619]\s*/g, '• ')   // various bullets → "• "
     .replace(/\n{3,}/g, '\n\n');
   addSource({id, name:'Pasted text', type:'paste', text:norm, preserveBreaks:true});
+  // Document View: render each line as a block — bullet lines get a hanging
+  // indent, blank lines become paragraph gaps — so structure is visible here too.
+  const docBody = norm.split('\n').map(line => {
+    if(!line.trim()) return '<div style="height:.55em"></div>';
+    const esc = escapeHtml(line);
+    if(/^•\s/.test(line)) return `<div style="padding-left:1.5em;text-indent:-1.1em;margin:.15em 0">${esc}</div>`;
+    return `<div style="margin:.15em 0">${esc}</div>`;
+  }).join('');
   state.pagesData.push({
     pageIdx: 1,
-    htmlPage: `<div style="white-space:pre-wrap;line-height:1.9">${escapeHtml(norm)}</div>`,
+    htmlPage: `<div style="line-height:1.9">${docBody}</div>`,
     text: norm, items: [], usedOCR: false, sourceId: id, preserveBreaks:true
   });
   $('pasteArea').value='';
@@ -1901,13 +1909,15 @@ $('splitParas').onclick = () => {
   const ta = $('pasteArea');
   let t = (ta.value || '').replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ');
   if(!t.trim()){ return; }
+  // Bullets FIRST so each list item anchors to its own line. Broad glyph set,
+  // plus leading "-" / "*" / "▶" markers at a line start (not mid-sentence).
+  t = t.replace(/[\u2022\u25CF\u25CB\u25E6\u2023\u2043\u2219\u25AA\u25AB\u25A0\u25A1\u00B7\u2027\u204C\u204D\u2756\u2666\u25C6\u25B8\u25B6\u27A2\u2619]\s*/g, '\n• ');
+  t = t.replace(/(^|\n)\s*[\-\*\u2013\u2014]\s+/g, '$1• ');
   // Break BEFORE a parenthesised number (Gujarati or ASCII digits): "(૧૪)" / "(14)"
   t = t.replace(/\s*(\([\u0AE6-\u0AEF0-9]+\))/g, '\n$1');
   // Break AFTER a sentence terminator when followed by more text
   t = t.replace(/([।॥.?!])\s+(?=\S)/g, '$1\n');
-  // Normalise bullets and collapse excess blank lines
-  t = t.replace(/[\u2022\u25CF\u25E6\u2023\u2043\u2219]\s*/g, '\n• ')
-       .replace(/\n{3,}/g, '\n\n')
+  t = t.replace(/\n{3,}/g, '\n\n')
        .replace(/^\n+/, '')
        .split('\n').map(s => s.trim()).filter((s, i, a) => s.length || (i>0 && a[i-1].length)).join('\n');
   ta.value = t;
