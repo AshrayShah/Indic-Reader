@@ -854,6 +854,11 @@
       <span class="knob"></span>
       <span class="toggle-label">🔋 Screen-off play</span>
     </label>
+    <label class="toggle" title="Show the scanned page (Document View) automatically when narration starts">
+      <input type="checkbox" id="docViewOnPlay">
+      <span class="knob"></span>
+      <span class="toggle-label">📄 Doc view on play</span>
+    </label>
   </div>
 
   <!-- Row 3: Narration speed sliders - all three languages on one line -->
@@ -1228,7 +1233,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.09';
+const APP_VERSION = '2.10';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -6246,6 +6251,12 @@ if($('keepPlayingHidden')){
   $('keepPlayingHidden').checked = state.keepPlayingHidden;
   $('keepPlayingHidden').onchange = (e)=>{ state.keepPlayingHidden = e.target.checked; try { localStorage.setItem('indic_keepplay', e.target.checked ? '1' : '0'); } catch(_){} };
 }
+// Show Document View when narration starts (default ON, persisted)
+state.docViewOnPlay = (function(){ try { return localStorage.getItem('indic_docview_play') !== '0'; } catch(e){ return true; } })();
+if($('docViewOnPlay')){
+  $('docViewOnPlay').checked = state.docViewOnPlay;
+  $('docViewOnPlay').onchange = (e)=>{ state.docViewOnPlay = e.target.checked; try { localStorage.setItem('indic_docview_play', e.target.checked ? '1' : '0'); } catch(_){} };
+}
 $('pauseOnCall').checked = state.pauseOnCall;
 $('pauseOnCall').onchange = (e)=>{
   state.pauseOnCall = e.target.checked;
@@ -7442,7 +7453,7 @@ async function playStep(overrideFilterOnce, session){
     }
   }
 
-  state.playing = false; releaseWakeLock(); $('playBtn').firstElementChild.textContent='▶';
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); $('playBtn').firstElementChild.textContent='▶';
   state.current = {lineIdx:-1, wordIdx:-1};
   highlight();
   if('mediaSession' in navigator){
@@ -7465,21 +7476,57 @@ $('skipCont').onclick = ()=>{
   playFromCurrent();
 };
 
+function switchToView(view){
+  const tab = document.querySelector(`.tab[data-view="${view}"]`);
+  if(tab){ tab.click(); }
+}
+
+// ---------- Media-session keepalive (CarPlay / Android Auto / lock screen) ----------
+// Web Speech (speechSynthesis) is not "media audio", so on its own it often
+// doesn't activate the system media session that CarPlay and Android Auto mirror.
+// Playing a tiny SILENT looping audio clip alongside narration holds that session
+// active, so the car head unit and lock screen show the now-playing text and
+// working Play/Pause/Next/Previous controls (incl. steering-wheel buttons).
+let _silentAudio = null;
+function _makeSilentAudio(){
+  if(_silentAudio) return _silentAudio;
+  // 1-second silent WAV, base64 (mono, 8kHz) — looped.
+  const wav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+  const a = new Audio(wav);
+  a.loop = true; a.volume = 0; a.preload = 'auto';
+  try { a.setAttribute('playsinline', ''); } catch(e){}
+  _silentAudio = a;
+  return a;
+}
+function startMediaKeepalive(){
+  try {
+    const a = _makeSilentAudio();
+    const p = a.play();
+    if(p && p.catch) p.catch(()=>{});   // autoplay can reject until a user gesture; play() is called from the play-button gesture so it's fine
+  } catch(e){}
+}
+function stopMediaKeepalive(){
+  try { if(_silentAudio){ _silentAudio.pause(); _silentAudio.currentTime = 0; } } catch(e){}
+}
+
 $('playBtn').onclick = ()=>{
   if(state.playing){
     state.session++;
-    state.playing = false; releaseWakeLock();
+    state.playing = false; releaseWakeLock(); stopMediaKeepalive();
     TTS.hardStop();
     $('playBtn').firstElementChild.textContent='▶';
     if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
     return;
   }
+  startMediaKeepalive();   // must run inside this user-gesture handler
+  // Optionally read in Document View (the scanned page) during narration.
+  if(state.docViewOnPlay && state.view !== 'doc'){ switchToView('doc'); }
   if(state.current.lineIdx<0) state.current = {lineIdx:0, wordIdx:0};
   playFromCurrent();
 };
 $('stopBtn').onclick = ()=>{
   state.session++;
-  state.playing = false; releaseWakeLock();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   state.current={lineIdx:-1,wordIdx:-1};
@@ -7504,7 +7551,7 @@ function pauseForInterruption(){
   if(!state.playing) return;          // nothing playing → nothing to do
   _resumeAfterInterruption = true;    // remember to resume on return
   state.session++;                    // invalidate the in-flight speak loop
-  state.playing = false; releaseWakeLock();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -7599,7 +7646,7 @@ $('nextPage').onclick = ()=>{
 $('pageInfo').onclick = ()=>{
   if(!state.pdfDoc) return;
   state.session++;
-  state.playing = false; releaseWakeLock();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   $('pageSection').style.display = 'block';
@@ -9367,7 +9414,7 @@ function clearAll(){
   // STOP all in-flight work before tearing down state
   state.session++;             // any awaiting playStep will exit
   state.cancel = true;         // any awaiting OCR/file extraction will exit
-  state.playing = false; releaseWakeLock();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
   TTS.hardStop();              // aggressive — actually stops audio
   clearTimeout(state._tapTimer); state._tapTimer = null;
   if(state.ocrWorker){
