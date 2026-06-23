@@ -236,6 +236,46 @@
   /* Toggle */
   .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
   .toggle input{display:none}
+  /* Compact highlight-when-active chips (replace toggle switches in the player) */
+  .chip{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;
+    font-size:12px;padding:6px 10px;border-radius:999px;background:var(--panel2);
+    color:var(--muted);border:1px solid var(--line);white-space:nowrap;transition:all .12s;flex:0 0 auto}
+  .chip input{display:none}
+  .chip:has(input:checked){background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:600}
+  .chip:active{transform:scale(.96)}
+  .speed-chip{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;
+    font-size:13px;padding:6px 11px;border-radius:999px;background:var(--panel2);
+    color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+  .speed-chip.open{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .speed-chip b{font-weight:700}
+  /* ---------- Immersive full-screen reading ---------- */
+  body.immersive > header,
+  body.immersive #uploadSection,
+  body.immersive #pageSection,
+  body.immersive #settingsBox,
+  body.immersive #libraryBox,
+  body.immersive .player-settings,
+  body.immersive .player-speeds,
+  body.immersive #readerSection .tabs .langfilter,
+  body.immersive #readerSection > .row,
+  body.immersive #readerSection > .meaning-row { display:none !important; }
+  body.immersive #readerSection .tabs { position:sticky; top:0; z-index:30; background:var(--bg); padding:6px 0; }
+  body.immersive { padding-bottom:96px; }
+  body.immersive #readerSection { margin:0; border:none; background:var(--bg); padding:6px 10px; }
+  /* Minimal control bar shown only in immersive mode */
+  #immersiveBar{ display:none; }
+  body.immersive #immersiveBar{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb, var(--panel) 92%, transparent);
+    border-top:1px solid var(--line); backdrop-filter:blur(8px);
+  }
+  body.immersive .player{ display:none !important; }
+  #immersiveBar .ibtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer; min-width:48px; }
+  #immersiveBar .ibtn.primary{ background:var(--accent); color:var(--on-accent); border-color:transparent; }
+  #immersiveBar .ibtn.wide{ font-size:14px; }
   .toggle .knob{width:36px;height:20px;background:var(--knob-bg);border-radius:999px;position:relative;transition:.15s}
   .toggle .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
     background:var(--knob-fg);border-radius:50%;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -716,6 +756,7 @@
   <div class="tabs">
     <button class="tab active" data-view="text">📝 Text View</button>
     <button class="tab" data-view="doc">📄 Document View</button>
+    <button class="tab" id="enterFullscreen" title="Immersive full-screen reading">⛶ Full screen</button>
     <div class="langfilter">
       <button class="tab active" data-lang="both">All</button>
       <button class="tab" data-lang="guj">ગુ Guj</button>
@@ -821,38 +862,39 @@
     <button class="btn ghost" id="pageInfo" title="Tap to choose pages" style="font-size:12px;padding:6px 10px;display:none">Page —</button>
   </div>
 
-  <!-- Row 2: Persistent settings (always visible) -->
-  <div class="player-row player-settings">
-    <label class="toggle">
-      <input type="checkbox" id="chantMode" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">🕉 Chant</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="autoScroll" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">Auto-scroll</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="pauseSkip" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">Pause at skip</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="continuousMode">
-      <span class="knob"></span>
-      <span class="toggle-label">📖 Continuous</span>
-    </label>
+  <!-- Row 2: Persistent settings as compact highlight-when-active chips, one line -->
+  <div class="player-row player-settings" style="gap:6px;flex-wrap:nowrap;justify-content:center;overflow-x:auto">
+    <label class="chip"><input type="checkbox" id="chantMode" checked>🕉 Chant</label>
+    <label class="chip"><input type="checkbox" id="autoScroll" checked>Scroll</label>
+    <label class="chip"><input type="checkbox" id="pauseSkip" checked>Pause-skip</label>
+    <label class="chip"><input type="checkbox" id="continuousMode">📖 Cont.</label>
   </div>
 
-  <!-- Row 3: Narration speed sliders - all three languages on one line -->
-  <div class="player-row player-speeds">
-    <div class="speeds">
-      <label>ગુ <input type="range" id="speedGuj" min=".5" max="2" step=".05" value="1.0"><span id="sgVal">1.0×</span></label>
-      <label>हि <input type="range" id="speedHin" min=".5" max="2" step=".05" value="1.0"><span id="shVal">1.0×</span></label>
-      <label>सं <input type="range" id="speedSan" min=".5" max="2" step=".05" value="1.0"><span id="ssVal">1.0×</span></label>
+  <!-- Row 3: Compact speed buttons (tap to reveal a fine-tune slider) -->
+  <div class="player-row player-speeds" style="flex-direction:column;gap:6px;align-items:center">
+    <div style="display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button type="button" class="speed-chip" data-speed="guj" data-val="sgVal">ગુ <b id="sgVal">1.0×</b></button>
+      <button type="button" class="speed-chip" data-speed="hin" data-val="shVal">हि <b id="shVal">1.0×</b></button>
+      <button type="button" class="speed-chip" data-speed="san" data-val="ssVal">सं <b id="ssVal">1.0×</b></button>
+    </div>
+    <div id="speedFineTune" style="display:none;align-items:center;gap:10px;width:100%;max-width:420px;padding:4px 8px">
+      <span id="speedFineLabel" style="font-size:13px;color:var(--muted);min-width:54px"></span>
+      <input type="range" id="speedSlider" min=".5" max="2" step=".05" value="1.0" style="flex:1">
+      <span id="speedFineVal" style="font-size:13px;font-weight:700;min-width:44px;text-align:right"></span>
     </div>
   </div>
+</div>
+
+<!-- Minimal control bar — visible only in immersive full-screen mode -->
+<div id="immersiveBar">
+  <button class="ibtn" id="imExit" title="Exit full screen">⤢</button>
+  <button class="ibtn" id="imPrev" title="Previous">⏮</button>
+  <button class="ibtn primary" id="imPlay" title="Play / Pause">▶</button>
+  <button class="ibtn" id="imNext" title="Next">⏭</button>
+  <button class="ibtn wide" id="imViewToggle" title="Switch Text / Document view">📄 Doc</button>
+  <span id="imLangWrap" style="display:inline-flex;gap:4px">
+    <button class="ibtn wide" id="imLang" title="Language filter">All</button>
+  </span>
 </div>
 
 <div class="skip-prompt" id="skipPrompt">
@@ -1217,7 +1259,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.14';
+const APP_VERSION = '2.16';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -6301,22 +6343,41 @@ $('flagLowConf').onchange = (e)=>{
 };
 
 // ---------- Speeds ----------
-function bindSpeed(id, key, valId){
-  const el = $(id);
-  // Restore the saved slider position + label on load
-  if(el && state.speeds[key] != null){ el.value = state.speeds[key]; }
-  const v0 = state.speeds[key];
-  if($(valId) && v0 != null){ $(valId).textContent = (Math.round(v0*100)%10===0 ? v0.toFixed(1) : v0.toFixed(2)) + '×'; }
-  el.oninput = (e)=>{
-    state.speeds[key]=parseFloat(e.target.value);
-    const v = state.speeds[key];
-    $(valId).textContent = (Math.round(v*100)%10===0 ? v.toFixed(1) : v.toFixed(2)) + '×';
+// ---------- Compact speed chips + shared fine-tune slider ----------
+const SPEED_LABELS = { guj:'ગુ Gujarati', hin:'हि Hindi', san:'सं Sanskrit' };
+function fmtSpeed(v){ return (Math.round(v*100)%10===0 ? v.toFixed(1) : v.toFixed(2)) + '×'; }
+function refreshSpeedChips(){
+  ['guj','hin','san'].forEach(k => {
+    const valId = k==='guj' ? 'sgVal' : k==='hin' ? 'shVal' : 'ssVal';
+    const v = state.speeds[k]; if($(valId) && v!=null) $(valId).textContent = fmtSpeed(v);
+  });
+}
+let _openSpeedKey = null;
+function openSpeedFineTune(key, chipEl){
+  const row = $('speedFineTune'), sl = $('speedSlider');
+  if(_openSpeedKey === key){   // tapping the open chip again closes it
+    row.style.display = 'none'; _openSpeedKey = null;
+    document.querySelectorAll('.speed-chip').forEach(c => c.classList.remove('open'));
+    return;
+  }
+  _openSpeedKey = key;
+  document.querySelectorAll('.speed-chip').forEach(c => c.classList.toggle('open', c === chipEl));
+  $('speedFineLabel').textContent = SPEED_LABELS[key];
+  sl.value = state.speeds[key] != null ? state.speeds[key] : 1;
+  $('speedFineVal').textContent = fmtSpeed(parseFloat(sl.value));
+  row.style.display = 'flex';
+  sl.oninput = (e)=>{
+    const v = parseFloat(e.target.value);
+    state.speeds[key] = v;
+    $('speedFineVal').textContent = fmtSpeed(v);
+    refreshSpeedChips();
     try { localStorage.setItem('indic_speeds', JSON.stringify(state.speeds)); } catch(_){}
   };
 }
-bindSpeed('speedGuj','guj','sgVal');
-bindSpeed('speedHin','hin','shVal');
-bindSpeed('speedSan','san','ssVal');
+document.querySelectorAll('.speed-chip').forEach(chip => {
+  chip.onclick = () => openSpeedFineTune(chip.dataset.speed, chip);
+});
+refreshSpeedChips();
 
 // ---------- Narration ----------
 // Approach: chunk-by-chunk SpeechSynthesisUtterance, one chunk = one line.
@@ -7284,7 +7345,7 @@ async function playFromCurrent(opts={}){
     await new Promise(r=>setTimeout(r,120));
     if(session !== state.session) return;
   }
-  state.playing = true; $('playBtn').firstElementChild.textContent='⏸';
+  state.playing = true; $('playBtn').firstElementChild.textContent='⏸'; if(typeof imSyncButtons==='function') imSyncButtons();
   acquireWakeLock();  // keep screen on during narration
   TTS.startResumeKeepalive();   // guard against Chrome stopping mid-session
   updateMediaSession();
@@ -7472,7 +7533,7 @@ async function playStep(overrideFilterOnce, session){
     }
   }
 
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive(); $('playBtn').firstElementChild.textContent='▶';
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive(); $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
   state.current = {lineIdx:-1, wordIdx:-1};
   highlight();
   if('mediaSession' in navigator){
@@ -7553,7 +7614,7 @@ $('playBtn').onclick = ()=>{
     state.session++;
     state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
     TTS.hardStop();
-    $('playBtn').firstElementChild.textContent='▶';
+    $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
     if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
     return;
   }
@@ -7568,11 +7629,54 @@ $('playBtn').onclick = ()=>{
   if(state.current.lineIdx<0) state.current = {lineIdx:0, wordIdx:0};
   playFromCurrent();
 };
+
+// ---------- Immersive full-screen reading ----------
+function imSyncButtons(){
+  const p = $('imPlay'); if(p) p.textContent = state.playing ? '⏸' : '▶';
+  const vt = $('imViewToggle'); if(vt) vt.textContent = state.view === 'doc' ? '📝 Text' : '📄 Doc';
+  const lf = $('imLang'); if(lf){
+    const m = { both:'All', guj:'ગુ', san:'सं', hin:'हि' };
+    lf.textContent = m[state.langFilter] || 'All';
+  }
+}
+function enterImmersive(){
+  document.body.classList.add('immersive');
+  try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
+  imSyncButtons();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function exitImmersive(){
+  document.body.classList.remove('immersive');
+  try { if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch(e){}
+}
+if($('enterFullscreen')) $('enterFullscreen').onclick = enterImmersive;
+if($('imExit')) $('imExit').onclick = exitImmersive;
+if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); };
+if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); };
+if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); };
+if($('imViewToggle')) $('imViewToggle').onclick = () => {
+  const target = state.view === 'doc' ? 'text' : 'doc';
+  const tab = document.querySelector(`.tab[data-view="${target}"]`);
+  if(tab) tab.click();
+  imSyncButtons();
+};
+if($('imLang')) $('imLang').onclick = () => {
+  const order = ['both','guj','san','hin'];
+  const next = order[(order.indexOf(state.langFilter) + 1) % order.length];
+  const tab = document.querySelector(`.tab[data-lang="${next}"]`);
+  if(tab) tab.click();
+  imSyncButtons();
+};
+document.addEventListener('fullscreenchange', () => {
+  if(!document.fullscreenElement && document.body.classList.contains('immersive')){
+    document.body.classList.remove('immersive');
+  }
+});
 $('stopBtn').onclick = ()=>{
   state.session++;
   state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
-  $('playBtn').firstElementChild.textContent='▶';
+  $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
   state.current={lineIdx:-1,wordIdx:-1};
   highlight();
   if('mediaSession' in navigator){
@@ -7597,7 +7701,7 @@ function pauseForInterruption(){
   state.session++;                    // invalidate the in-flight speak loop
   state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
-  $('playBtn').firstElementChild.textContent='▶';
+  $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 }
 function resumeAfterInterruption(){
@@ -7692,7 +7796,7 @@ $('pageInfo').onclick = ()=>{
   state.session++;
   state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
-  $('playBtn').firstElementChild.textContent='▶';
+  $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
   $('pageSection').style.display = 'block';
   $('pageSection').scrollIntoView({behavior:'smooth', block:'start'});
 };
@@ -9512,7 +9616,7 @@ function clearAll(){
   $('pageRange').value='';
   $('pasteArea').value='';
   $('pageInfo').style.display='none';
-  $('playBtn').firstElementChild.textContent='▶';
+  $('playBtn').firstElementChild.textContent='▶'; if(typeof imSyncButtons==='function') imSyncButtons();
   hideStatus();
   // Reset cancel flag for next session
   setTimeout(()=>{ state.cancel = false; }, 100);
