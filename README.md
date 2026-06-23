@@ -11,22 +11,23 @@ A single-file web app for reading, narrating, and translating Indic-script scrip
 1. [Quick start](#quick-start)
 2. [Loading documents](#loading-documents)
 3. [Reading & narration](#reading--narration)
-4. [Layouts (A / B / C)](#layouts-a--b--c)
-5. [Language filter](#language-filter)
-6. [Outline / table of contents](#outline--table-of-contents)
-7. [Word meanings & translation](#word-meanings--translation)
-8. [Split Sandhi (word separation)](#split-sandhi-word-separation)
-9. [Correcting language & text](#correcting-language--text)
-10. [Vedabase deep links](#vedabase-deep-links)
-11. [OCR for scanned documents](#ocr-for-scanned-documents)
-12. [Re-OCR a region](#re-ocr-a-region)
-13. [Cloud OCR setup](#cloud-ocr-setup)
-14. [Google Drive integration](#google-drive-integration)
-15. [Settings & preferences](#settings--preferences)
-16. [Keyboard shortcuts](#keyboard-shortcuts)
-17. [Privacy & data handling](#privacy--data-handling)
-18. [Troubleshooting](#troubleshooting)
-19. [Known limitations](#known-limitations)
+4. [Full-screen immersive reading](#full-screen-immersive-reading)
+5. [Layouts (A / B / C)](#layouts-a--b--c)
+6. [Language filter](#language-filter)
+7. [Outline / table of contents](#outline--table-of-contents)
+8. [Word meanings & translation](#word-meanings--translation)
+9. [Split Sandhi (word separation)](#split-sandhi-word-separation)
+10. [Correcting language & text](#correcting-language--text)
+11. [Vedabase deep links](#vedabase-deep-links)
+12. [OCR for scanned documents](#ocr-for-scanned-documents)
+13. [Re-OCR a region](#re-ocr-a-region)
+14. [Cloud OCR setup](#cloud-ocr-setup)
+15. [Google Drive integration](#google-drive-integration)
+16. [Settings & preferences](#settings--preferences)
+17. [Keyboard shortcuts](#keyboard-shortcuts)
+18. [Privacy & data handling](#privacy--data-handling)
+19. [Troubleshooting](#troubleshooting)
+20. [Known limitations](#known-limitations)
 
 ---
 
@@ -56,6 +57,10 @@ Five ways to load content:
 
 Supported file types: PDF, DOCX, TXT, RTF, HTML, XML, images (JPG, PNG, etc.)
 
+### Pasting formatted text
+
+When you paste from a rich source (a web page, a document editor), the app reads the clipboard's HTML so **paragraphs, line breaks, and bullet lists are preserved** rather than flattened — bullets are normalized and each paragraph keeps its own line. A small indicator tells you whether rich formatting was detected. If a source only provides plain text (some apps strip formatting on copy), a **¶ Restore paragraphs** button reconstructs structure by breaking at sentence ends and before section numbers, and recognizes a wide range of bullet markers. Pasted text starts a clean document, so it never disturbs a PDF you already have open (its reading position and OCR cache are preserved). Structure carries through to both Text View and Document View.
+
 ---
 
 ## Reading & narration
@@ -75,31 +80,49 @@ Two views, switchable via the tabs at the top of the reader:
 | ⏭ | Next line / verse |
 | Page chip | Tap to jump to a specific page |
 
-### Narration toggles
+### Narration chips (floating player)
 
-Reading-time toggles live on the floating player:
+Reading-time options sit on the floating player as compact chips that **highlight when active** (tap to toggle), kept on a single line:
 
-- **🕉 Chant** — slow, contemplative narration speed (overrides per-language sliders)
-- **Auto-scroll** — scrolls the page automatically as narration progresses
-- **Pause at skip** — when narration encounters a line in a language you've filtered out, pause briefly so you can decide whether to skip or include it
-- **📖 Continuous** — auto-advance through pages without manual ⏭. In Continuous mode the app now **OCRs the next page just-in-time**: a few lines before the current page ends it prepares the next page in the background, then narration flows straight into it — you no longer have to pre-select every page. Each page prepared this way is written to the OCR cache, so it's instant (and free of repeat cloud cost) next time.
+- **🕉 Chant** — slow, contemplative narration speed (overrides per-language speed)
+- **Scroll** (Auto-scroll) — scrolls the page automatically as narration progresses, in both Text and Document view
+- **Pause-skip** (Pause at skip) — when narration encounters a line in a language you've filtered out, pause briefly so you can decide whether to skip or include it
+- **📖 Cont.** (Continuous) — auto-advance through pages without manual ⏭. In Continuous mode the app **OCRs the next page just-in-time**: a few lines before the current page ends it prepares the next page in the background, then narration flows straight into it — you no longer have to pre-select every page. Each page prepared this way is written to the OCR cache, so it's instant (and free of repeat cloud cost) next time.
 
-### Reading preferences (Prefs strip, near the Layout control)
+### ⚙️ Settings panel
 
-Set-and-forget options were moved off the bottom player into a compact **Prefs** strip beside Layout:
+Set-and-forget options live in a single **⚙️ Settings** panel (button beside Library), grouped into **OCR**, **Playback**, **Reading layout**, and **Document**, so the reading surface stays uncluttered:
 
 - **📞 Pause on call** — auto-pause narration on a phone call or when the tab is hidden, resume after
 - **📍 Resume** — remember your position (page, line, word) and offer to continue; reopening a multi-page PDF via **Continue** auto-selects and processes just the page you were on, then jumps to the exact line/word
 - **🗄 OCR cache** — cache recognized text + word boxes per page so reopening/re-reading is instant and avoids repeat cloud-OCR cost (turning it off clears the cache)
 - **⚠️ Check OCR** — underline words the OCR engine was unsure about (low confidence) so they're easy to spot and fix
+- **🔋 Screen-off play** — keep narrating when the screen turns off or the app is backgrounded, where the device allows it (off by default; see *Background & car playback* below for the trade-off)
+- **📄 Doc view on play** — switch to Document View automatically when narration starts
+- **🔊 Read translation in narration** — also speak each line's translation during continuous narration
+- **Force OCR**, **☁️ Cloud OCR**, **↩ Fallback to local**, **⚙ Cloud setup** — OCR engine configuration
+- **Reading layout A / B / C** — the layout selector
+- **📋 Copy Filtered** — copy only the lines matching the current language filter
+
+### Full-screen immersive reading
+
+A **⛶ Full screen** tab puts the reader into a distraction-free mode showing **only the current view** (Text or Document) with a single floating control bar — **minimise ⤢, ⏮, play/pause, ⏭, a Text/Document toggle, and a language filter**. The app header, upload area, settings, and all editing tools are hidden. Document View fills the entire screen in this mode (the normal half-height cap is removed). The control bar stays visible while you read, and the app **enters full-screen automatically once a page is processed**, so you go straight into reading. Exit any time with **⤢**. On Android Chrome this also engages the browser's true full-screen; on iOS it relies on the immersive layout (and is fully chrome-free when the app is added to the Home Screen).
+
+### Per-verse translation narration
+
+Each translated verse block carries its own **🔊** button next to the translation text — tap it to hear *that verse's* translation read aloud in the right voice for the target language, independent of the main narration.
+
+### Background & car playback
+
+While narrating, the screen is held awake so playback doesn't stop when the display would otherwise sleep. With a phone connected to a car by **Bluetooth**, narration plays through the car speakers and the basic steering-wheel/head-unit play/pause may control it. Turning on **🔋 Screen-off play** keeps a silent media session alive so lock-screen transport controls appear and playback continues when backgrounded — but because that media session competes with the speech channel, it can make narration less stable on **Android Auto**; leave it **off** for the most reliable in-car audio. A web app cannot appear as a native app on the Android Auto / CarPlay projected screen — that requires a native build — so use Bluetooth audio mode in the car.
 
 ### Line numbers
 
 Text View shows a muted line number in the left gutter of each line, to make it easy to reference a line for correction. The numbers are drawn so they're **never included when you select or copy text**.
 
-### Speed sliders
+### Speed chips (per language)
 
-Three independent sliders, one per language (Gujarati, Hindi, Sanskrit). Adjust narration speed per script. Sanskrit chanting traditionally slower; Hindi/Gujarati prose can be faster.
+Narration speed is set per language (Gujarati, Hindi, Sanskrit) with three compact **speed chips** showing the current value (e.g. `ગુ 1.0×`). Tap a chip to expand a fine-tune slider for that language; tap again to collapse. Sanskrit chanting is traditionally slower; Hindi/Gujarati prose can be faster. The default is **1.0×** for all three (existing saved preferences are kept). The Sanskrit chip drives both plain reading speed and chant-mode pacing across its full range.
 
 ### Screen wake lock
 
@@ -196,7 +219,7 @@ In Text View, three buttons in the controls row translate the **current page**, 
 - **🌐 हि→ગુ** — translate the page's Hindi lines into Gujarati
 - **🌐 →EN** — translate the page's Gujarati *and* Hindi lines into English
 
-The translation appears as a block under each translated line (the original stays, so narration and study are unaffected). Tap the same button again to hide. Sanskrit lines are never sent. Results are cached on-device. Uses Google Translate's public endpoint under the same consent as Translate verse.
+The translation appears as a block under each translated line (the original stays, so narration and study are unaffected). Each block has its own **🔊** button to read that verse's translation aloud on demand. The translate controls appear **only in Text View**. Tap the same translate button again to hide. Sanskrit lines are never sent. Results are cached on-device. Uses Google Translate's public endpoint under the same consent as Translate verse. To have translations spoken automatically as part of continuous narration, enable **🔊 Read translation in narration** in Settings.
 
 ### Bookmark notes
 
@@ -608,6 +631,14 @@ Things this app **does not** and **cannot** do well:
 - **Sandhi splitting is not guaranteed correct** — the Heritage segmenter gives the ranked best analysis, but Sanskrit segmentation is inherently ambiguous. The on-device fallback is heuristic only. Always verify with the built-in split/merge editing. See [Split Sandhi](#split-sandhi-word-separation).
 - **Offline-first PWA install** — the file works offline once loaded, but proper PWA install with home-screen icon requires the GitHub Pages bundle.
 - **Persistent translation cache** — currently per-session. Reloading the page loses cached translations. (Language/text corrections, bookmark notes, the OCR cache, and saved sandhi splits *do* persist.)
+- **Screen-off narration on Android** — Web Speech narration is suspended by the OS when the screen is *manually* locked; no web app can override this. The screen is held awake during narration as the practical workaround. True screen-off background audio needs a native app.
+- **Android Auto / CarPlay projected screen** — a web app cannot register as a native in-car app, so Indic Reader can't appear as a tile on the car's Auto/CarPlay screen. Use **Bluetooth audio** mode in the car (see *Background & car playback*).
+- **iOS storage** — Safari clears site data in Private Browsing, with "Block All Cookies" on, or after 7 days of non-use. **Add to Home Screen** for durable storage; a startup banner warns if storage is blocked.
+- **iOS Gujarati voice** — iOS has no native Gujarati voice; the app transliterates to Devanagari and uses the Hindi voice so Gujarati is still spoken (Hindi-accented). Android with the Google Gujarati voice is recommended for proper Gujarati narration.
+
+### OCR reading order
+
+For cloud-OCR'd pages, the app rebuilds the visual reading order at the **line level** — keeping each recognized line's words and punctuation intact and reordering only whole lines top-to-bottom — so multi-column headers and skewed scans don't scramble words. The OCR pipeline is versioned so improvements automatically invalidate stale cached results without any manual cache clearing.
 
 ---
 
