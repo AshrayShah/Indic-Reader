@@ -263,7 +263,7 @@
   body.immersive { padding-bottom:0; }
   body.immersive #readerSection { margin:0; border:none; background:var(--bg); padding:6px 10px; }
   /* Document View fills the whole screen in immersive (override the 55vh cap) */
-  body.immersive #docView{ max-height:none !important; height:calc(100vh - 60px); overflow-y:auto; border-radius:0; }
+  body.immersive #docView{ max-height:none !important; height:calc(100vh - 76px); overflow-y:auto; border-radius:0; }
   body.immersive.controls-hidden #docView{ height:100vh; }
   body.immersive #docView img{ width:100% !important; height:auto !important; }
   body.immersive #textView{ min-height:calc(100vh - 120px); }
@@ -273,22 +273,51 @@
   /* Minimal control bar shown only in immersive mode */
   #immersiveBar{ display:none; }
   body.immersive #immersiveBar{
-    display:flex; align-items:center; justify-content:center; gap:10px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
     position:fixed; left:0; right:0; bottom:0; z-index:50;
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     background:color-mix(in srgb, var(--panel) 92%, transparent);
     border-top:1px solid var(--line); backdrop-filter:blur(8px);
-    transition:transform .22s ease, opacity .22s ease;
+    transition:transform .22s ease, opacity .22s ease; overflow-x:auto;
   }
   #immersiveBar .ibtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
-    border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer; min-width:48px; }
+    border-radius:11px; padding:9px 11px; font-size:14px; cursor:pointer; min-width:42px; white-space:nowrap; }
   #immersiveBar .ibtn.primary{ background:var(--accent); color:var(--on-accent); border-color:transparent; }
   #immersiveBar .ibtn.wide{ font-size:14px; }
   /* Single full-screen control: hide the top tab while immersive (the bottom
      bar's Exit button is the toggle), and make both states prominent. */
   body.immersive #enterFullscreen{ display:none !important; }
+  /* In full screen the top tabs are hidden so the system status bar (time,
+     battery) shows. View + language switching live in the bottom bar instead. */
+  body.immersive #readerSection .tabs{ display:none !important; }
+  body.immersive #readerSection{ padding-top:calc(env(safe-area-inset-top) + 26px); }
+  /* Custom status strip (time / battery / signal) — true full screen hides the
+     OS status bar, so we render our own thin strip at the very top. */
+  #imStatusBar{ display:none; }
+  body.immersive #imStatusBar{
+    display:flex; align-items:center; justify-content:space-between;
+    position:fixed; top:0; left:0; right:0; z-index:60;
+    padding:calc(env(safe-area-inset-top) + 3px) 14px 3px;
+    font-size:12.5px; font-weight:600; color:var(--ink);
+    background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(6px);
+  }
+  #imStatusBar #imStatusRight{ display:inline-flex; gap:12px; align-items:center; }
   #enterFullscreen{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   #immersiveBar .ibtn.exit{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
+  /* Floating speed + settings panels (anchored above the bar) */
+  #imSpeedPanel, #imSettingsPanel{ display:none; }
+  body.immersive #imSpeedPanel.show, body.immersive #imSettingsPanel.show{
+    display:block; position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(72px + env(safe-area-inset-bottom)); z-index:55; width:min(92vw,420px);
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px 14px; box-shadow:0 8px 28px rgba(0,0,0,.28);
+  }
+  #imSettingsPanel .imrow{ display:flex; align-items:center; justify-content:space-between; padding:7px 2px; border-bottom:1px solid var(--line); }
+  #imSettingsPanel .imrow:last-child{ border-bottom:none; }
+  #imSettingsPanel .imrow > span{ font-size:14px; }
+  .imseg{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:9px; padding:6px 12px; font-size:13px; cursor:pointer; }
+  .imseg.active{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:600; }
   .toggle .knob{width:36px;height:20px;background:var(--knob-bg);border-radius:999px;position:relative;transition:.15s}
   .toggle .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
     background:var(--knob-fg);border-radius:50%;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -899,15 +928,46 @@
 </div>
 
 <!-- Minimal control bar — visible only in immersive full-screen mode -->
+<!-- Custom status strip (time / battery / signal) shown at the top while in
+     true full screen, since the OS status bar is hidden in that mode. -->
+<div id="imStatusBar">
+  <span id="imClock">--:--</span>
+  <span id="imStatusRight">
+    <span id="imSignal" title="Network">📶</span>
+    <span id="imBattery" title="Battery">🔋 --%</span>
+  </span>
+</div>
+
 <div id="immersiveBar">
-  <button class="ibtn exit wide" id="imExit" title="Exit full screen">⤢ Exit</button>
+  <button class="ibtn exit" id="imExit" title="Exit full screen">⤢</button>
   <button class="ibtn" id="imPrev" title="Previous">⏮</button>
   <button class="ibtn primary" id="imPlay" title="Play / Pause">▶</button>
   <button class="ibtn" id="imNext" title="Next">⏭</button>
-  <button class="ibtn wide" id="imViewToggle" title="Switch Text / Document view">📄 Doc</button>
-  <span id="imLangWrap" style="display:inline-flex;gap:4px">
-    <button class="ibtn wide" id="imLang" title="Language filter">All</button>
-  </span>
+  <button class="ibtn" id="imViewToggle" title="Switch Text / Document view">📄</button>
+  <button class="ibtn" id="imLang" title="Language filter">All</button>
+  <button class="ibtn" id="imSpeed" title="Narration speed">🐢</button>
+  <button class="ibtn" id="imSettings" title="Reading settings">⚙️</button>
+</div>
+
+<!-- Floating speed slider (always available in full screen) -->
+<div id="imSpeedPanel">
+  <div style="display:flex;gap:6px;margin-bottom:6px">
+    <button class="imseg" data-sp="guj">ગુ</button>
+    <button class="imseg" data-sp="hin">हि</button>
+    <button class="imseg active" data-sp="san">सं</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="range" id="imSpeedSlider" min=".5" max="2" step=".05" value="1.0" style="flex:1">
+    <span id="imSpeedVal" style="font-weight:700;min-width:46px;text-align:right">1.0×</span>
+  </div>
+</div>
+
+<!-- Settings popup (change everything without leaving full screen) -->
+<div id="imSettingsPanel">
+  <div class="imrow"><span>🕉 Chant</span><label class="chip"><input type="checkbox" id="imChant"><span></span></label></div>
+  <div class="imrow"><span>Auto-scroll</span><label class="chip"><input type="checkbox" id="imScroll"><span></span></label></div>
+  <div class="imrow"><span>Pause at skip</span><label class="chip"><input type="checkbox" id="imSkip"><span></span></label></div>
+  <div class="imrow"><span>📖 Continuous</span><label class="chip"><input type="checkbox" id="imCont"><span></span></label></div>
 </div>
 
 <div class="skip-prompt" id="skipPrompt">
@@ -1272,7 +1332,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.20';
+const APP_VERSION = '2.25';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -2026,7 +2086,7 @@ function _djb2(str){ let h = 5381, i = str.length; while(i){ h = ((h * 33) ^ str
 // Bump OCR_PIPE_VER whenever the OCR post-processing pipeline changes (e.g.
 // the reading-order rebuild). It's part of the cache key, so entries produced
 // by an older pipeline are automatically ignored — no manual cache clearing.
-const OCR_PIPE_VER = 2;
+const OCR_PIPE_VER = 3;
 function _ocrSettingsSig(){
   let cfg = {}; try { cfg = getCloudOCRConfig() || {}; } catch(e){}
   return `v${OCR_PIPE_VER}f${state.forceOCR?1:0}c${cfg.enabled?1:0}${cfg.provider||'x'}b${cfg.fallback?1:0}`;
@@ -3340,15 +3400,19 @@ async function runOCRWithFallback(originalCanvas, onProg){
 
 
 // Auto-script local OCR. Mixing Gujarati + Devanagari in one Tesseract worker
-// garbles Indic text, so we run a Gujarati-only pass and a Devanagari-only pass
-// separately and keep whichever matches the page — scored by how many in-script
-// characters it produced, weighted by mean confidence. This is the offline
-// equivalent of letting one clean model read the page.
+// garbles Indic text, so we run a Gujarati-only pass and a Devanagari pass
+// separately and keep whichever matches the page. The Devanagari pass loads
+// BOTH Hindi and Sanskrit models (same script, so no cross-script bleed): Hindi
+// reads prose robustly, Sanskrit catches verse conjuncts. Using Sanskrit alone
+// previously mis-scored Hindi pages — the Gujarati model's confident-but-wrong
+// output could beat a weak Sanskrit-only read, so clean Hindi came out as
+// garbled Gujarati. Scoring weights in-script character yield by confidence,
+// and the winner must clearly lead on its own script's character count.
 async function runOCRAutoScript(input, onProg){
   const GUJ = /[\u0A80-\u0AFF]/g, DEV = /[\u0900-\u097F]/g;
+  const count = (res, re) => (((res && res.text) || '').match(re) || []).length;
   const score = (res, re) => {
-    const t = (res && res.text) || '';
-    const inScript = (t.match(re) || []).length;
+    const inScript = count(res, re);
     const conf = Math.max(0, Math.min(100, (res && res.confidence) || 0));
     return inScript * (0.4 + 0.6 * conf / 100);
   };
@@ -3358,9 +3422,18 @@ async function runOCRAutoScript(input, onProg){
   catch(e){ if(e.message === 'CANCELLED') throw e; }
   if(state.cancel) throw new Error('CANCELLED');
   if(onProg) onProg({ status: 'Reading (Devanagari script)…', progress: 0.55 });
-  try { dev = await runOCR(input, onProg, ['san']); }
+  try { dev = await runOCR(input, onProg, ['hin','san']); }
   catch(e){ if(e.message === 'CANCELLED') throw e; }
-  if(guj && dev) return score(guj, GUJ) >= score(dev, DEV) ? guj : dev;
+  if(guj && dev){
+    const gC = count(guj, GUJ), dC = count(dev, DEV);
+    // Decide by which SCRIPT actually dominates the page. The correct-script
+    // model yields far more clean in-script characters than the wrong one
+    // mapping glyphs into its alphabet. If one script's character yield clearly
+    // leads (>25%), trust it outright; otherwise fall back to confidence-weighted.
+    if(dC > gC * 1.25) return dev;
+    if(gC > dC * 1.25) return guj;
+    return score(guj, GUJ) >= score(dev, DEV) ? guj : dev;
+  }
   return guj || dev || { text: '', words: [], confidence: 0 };
 }
 
@@ -7661,42 +7734,139 @@ function imToggleControls(){ /* no-op: floating controls always shown */ }
 function _imTapHandler(){ /* tap no longer toggles chrome; controls are persistent */ }
 function imSyncButtons(){
   const p = $('imPlay'); if(p) p.textContent = state.playing ? '⏸' : '▶';
-  const vt = $('imViewToggle'); if(vt) vt.textContent = state.view === 'doc' ? '📝 Text' : '📄 Doc';
+  const vt = $('imViewToggle'); if(vt){ vt.textContent = state.view === 'doc' ? '📝' : '📄'; vt.title = state.view === 'doc' ? 'Switch to Text view' : 'Switch to Document view'; }
   const lf = $('imLang'); if(lf){
     const m = { both:'All', guj:'ગુ', san:'सं', hin:'हि' };
     lf.textContent = m[state.langFilter] || 'All';
   }
+  // Mirror the main toggles into the settings popup
+  if($('imChant')) $('imChant').checked = state.chantMode;
+  if($('imScroll')) $('imScroll').checked = state.autoScroll;
+  if($('imSkip')) $('imSkip').checked = state.pauseSkip;
+  if($('imCont')) $('imCont').checked = state.continuousMode;
+  // Speed button reflects the currently-selected language's speed
+  const sp = $('imSpeed');
+  if(sp){ const k = _imSpeedKey; sp.textContent = '🐢'; sp.title = 'Narration speed · ' + fmtSpeed(state.speeds[k] != null ? state.speeds[k] : 1); }
 }
+let _imSpeedKey = 'san';
+function imRefreshSpeedPanel(){
+  const sl = $('imSpeedSlider'); if(!sl) return;
+  document.querySelectorAll('#imSpeedPanel .imseg').forEach(b => b.classList.toggle('active', b.dataset.sp === _imSpeedKey));
+  const v = state.speeds[_imSpeedKey] != null ? state.speeds[_imSpeedKey] : 1;
+  sl.value = v; $('imSpeedVal').textContent = fmtSpeed(v);
+  imSyncButtons();
+}
+function imClosePanels(except){
+  if(except !== 'speed') $('imSpeedPanel') && $('imSpeedPanel').classList.remove('show');
+  if(except !== 'settings') $('imSettingsPanel') && $('imSettingsPanel').classList.remove('show');
+}
+
+// ---------- Custom status strip (true full screen hides the OS one) ----------
+let _imClockTimer = null, _imBattery = null, _imBatteryBound = false;
+function imUpdateClock(){
+  const el = $('imClock'); if(!el) return;
+  const d = new Date();
+  let h = d.getHours(); const m = String(d.getMinutes()).padStart(2,'0');
+  const ap = h < 12 ? 'AM' : 'PM'; h = h % 12 || 12;
+  el.textContent = `${h}:${m} ${ap}`;
+}
+function imUpdateBattery(){
+  const el = $('imBattery'); if(!el || !_imBattery) return;
+  const pct = Math.round((_imBattery.level || 0) * 100);
+  const icon = _imBattery.charging ? '⚡' : (pct <= 15 ? '🪫' : '🔋');
+  el.textContent = `${icon} ${pct}%`;
+}
+function imUpdateSignal(){
+  const el = $('imSignal'); if(!el) return;
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(!c){ el.textContent = '📶'; return; }
+  // Map effective connection type to a label + bars
+  const t = (c.effectiveType || '').toLowerCase();
+  const label = c.type === 'wifi' ? 'Wi-Fi' :
+    (t === '4g' ? '4G' : t === '3g' ? '3G' : t === '2g' ? '2G' : t === 'slow-2g' ? '2G' : '');
+  el.textContent = '📶' + (label ? ' ' + label : '');
+}
+function imStartStatus(){
+  imUpdateClock(); imUpdateSignal();
+  if(_imClockTimer) clearInterval(_imClockTimer);
+  _imClockTimer = setInterval(imUpdateClock, 15000);   // refresh clock periodically
+  // Battery (one-time bind, then live updates)
+  if(navigator.getBattery && !_imBatteryBound){
+    _imBatteryBound = true;
+    navigator.getBattery().then(b => {
+      _imBattery = b; imUpdateBattery();
+      b.addEventListener('levelchange', imUpdateBattery);
+      b.addEventListener('chargingchange', imUpdateBattery);
+    }).catch(()=>{ const el=$('imBattery'); if(el) el.textContent=''; });
+  } else if(!navigator.getBattery){
+    const el=$('imBattery'); if(el) el.textContent='';   // unsupported (e.g. iOS) → hide
+  } else { imUpdateBattery(); }
+  const c = navigator.connection;
+  if(c && c.addEventListener){ try { c.addEventListener('change', imUpdateSignal); } catch(e){} }
+}
+function imStopStatus(){
+  if(_imClockTimer){ clearInterval(_imClockTimer); _imClockTimer = null; }
+}
+
 function enterImmersive(){
   document.body.classList.add('immersive');
-  document.body.classList.remove('controls-hidden');   // always show the floating bar
   try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
-  imSyncButtons();
+  imSyncButtons(); imRefreshSpeedPanel(); imStartStatus();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function exitImmersive(){
   document.body.classList.remove('immersive');
-  document.body.classList.remove('controls-hidden');
+  imClosePanels(''); imStopStatus();
   try { if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch(e){}
 }
 if($('enterFullscreen')) $('enterFullscreen').onclick = enterImmersive;
 if($('imExit')) $('imExit').onclick = exitImmersive;
 if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); };
 if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); };
-if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); imShowControls(); };
+if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); };
+// Speed button toggles the floating speed panel
+if($('imSpeed')) $('imSpeed').onclick = () => {
+  const panel = $('imSpeedPanel'); const open = panel.classList.contains('show');
+  imClosePanels('speed');
+  if(open){ panel.classList.remove('show'); } else { imRefreshSpeedPanel(); panel.classList.add('show'); }
+};
+document.querySelectorAll('#imSpeedPanel .imseg').forEach(b => {
+  b.onclick = () => { _imSpeedKey = b.dataset.sp; imRefreshSpeedPanel(); };
+});
+if($('imSpeedSlider')) $('imSpeedSlider').oninput = (e) => {
+  const v = parseFloat(e.target.value);
+  state.speeds[_imSpeedKey] = v;
+  $('imSpeedVal').textContent = fmtSpeed(v);
+  if(typeof refreshSpeedChips === 'function') refreshSpeedChips();
+  imSyncButtons();
+  try { localStorage.setItem('indic_speeds', JSON.stringify(state.speeds)); } catch(_){}
+};
+// Settings popup
+if($('imSettings')) $('imSettings').onclick = () => {
+  const panel = $('imSettingsPanel'); const open = panel.classList.contains('show');
+  imClosePanels('settings');
+  if(open){ panel.classList.remove('show'); } else { imSyncButtons(); panel.classList.add('show'); }
+};
 if($('imViewToggle')) $('imViewToggle').onclick = () => {
   const target = state.view === 'doc' ? 'text' : 'doc';
   const tab = document.querySelector(`.tab[data-view="${target}"]`);
   if(tab) tab.click();
-  imSyncButtons(); imShowControls();
+  imSyncButtons();
 };
 if($('imLang')) $('imLang').onclick = () => {
   const order = ['both','guj','san','hin'];
   const next = order[(order.indexOf(state.langFilter) + 1) % order.length];
   const tab = document.querySelector(`.tab[data-lang="${next}"]`);
   if(tab) tab.click();
-  imSyncButtons(); imShowControls();
+  imSyncButtons();
 };
+// Settings popup toggles mirror the real controls
+function _imMirror(id, realId){
+  const el = $(id); if(!el) return;
+  el.onchange = (e) => { const real = $(realId); if(real){ real.checked = e.target.checked; real.dispatchEvent(new Event('change')); } };
+}
+_imMirror('imChant','chantMode'); _imMirror('imScroll','autoScroll');
+_imMirror('imSkip','pauseSkip'); _imMirror('imCont','continuousMode');
 document.addEventListener('fullscreenchange', () => {
   if(!document.fullscreenElement && document.body.classList.contains('immersive')){
     exitImmersive();
