@@ -254,11 +254,11 @@
   body.immersive #pageSection,
   body.immersive #settingsBox,
   body.immersive #libraryBox,
-  body.immersive .player-settings,
-  body.immersive .player-speeds,
-  body.immersive #readerSection .tabs .langfilter,
-  body.immersive #readerSection > .row,
-  body.immersive #readerSection > .meaning-row { display:none !important; }
+  body.immersive .player { display:none !important; }
+  /* Inside the reader, keep ONLY the view tabs and the active view (text/doc) */
+  body.immersive #readerSection > *:not(.tabs):not(#textView):not(#docView){ display:none !important; }
+  body.immersive #readerSection .tabs .langfilter { display:none !important; }
+  body.immersive #readerSection .reocr-bar { display:none !important; }
   body.immersive #readerSection .tabs { position:sticky; top:0; z-index:30; background:var(--bg); padding:6px 0; }
   body.immersive { padding-bottom:96px; }
   body.immersive #readerSection { margin:0; border:none; background:var(--bg); padding:6px 10px; }
@@ -271,7 +271,6 @@
     background:color-mix(in srgb, var(--panel) 92%, transparent);
     border-top:1px solid var(--line); backdrop-filter:blur(8px);
   }
-  body.immersive .player{ display:none !important; }
   #immersiveBar .ibtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
     border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer; min-width:48px; }
   #immersiveBar .ibtn.primary{ background:var(--accent); color:var(--on-accent); border-color:transparent; }
@@ -610,7 +609,7 @@
 <main>
 
 <!-- SOURCE INPUT -->
-<section>
+<section id="uploadSection">
   <h2>Source Input</h2>
   <div class="drop" id="drop">
     <div style="font-size:28px">📥</div>
@@ -1259,7 +1258,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.16';
+const APP_VERSION = '2.17';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -6048,6 +6047,7 @@ function renderDocView(){
       // scroll area) so it stays visible no matter how tall the page image is —
       // the user never has to scroll to the bottom to find it.
       const reocrBar = document.createElement('div');
+      reocrBar.className = 'reocr-bar';
       reocrBar.style.cssText = 'position:sticky;top:0;z-index:6;display:flex;gap:8px;'
         + 'align-items:center;flex-wrap:wrap;padding:6px 4px;font-size:12px;'
         + 'background:var(--panel2);border-bottom:1px solid var(--line)';
