@@ -260,8 +260,16 @@
   body.immersive #readerSection .tabs .langfilter { display:none !important; }
   body.immersive #readerSection .reocr-bar { display:none !important; }
   body.immersive #readerSection .tabs { position:sticky; top:0; z-index:30; background:var(--bg); padding:6px 0; }
-  body.immersive { padding-bottom:96px; }
+  body.immersive { padding-bottom:0; }
   body.immersive #readerSection { margin:0; border:none; background:var(--bg); padding:6px 10px; }
+  /* Document View fills the whole screen in immersive (override the 55vh cap) */
+  body.immersive #docView{ max-height:none !important; height:calc(100vh - 60px); overflow-y:auto; border-radius:0; }
+  body.immersive.controls-hidden #docView{ height:100vh; }
+  body.immersive #docView img{ width:100% !important; height:auto !important; }
+  body.immersive #textView{ min-height:calc(100vh - 120px); }
+  /* Tap-to-toggle: hide chrome until the user taps the reading area */
+  body.immersive.controls-hidden #readerSection .tabs{ display:none !important; }
+  body.immersive.controls-hidden #immersiveBar{ transform:translateY(120%); opacity:0; pointer-events:none; }
   /* Minimal control bar shown only in immersive mode */
   #immersiveBar{ display:none; }
   body.immersive #immersiveBar{
@@ -270,6 +278,7 @@
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
     background:color-mix(in srgb, var(--panel) 92%, transparent);
     border-top:1px solid var(--line); backdrop-filter:blur(8px);
+    transition:transform .22s ease, opacity .22s ease;
   }
   #immersiveBar .ibtn{ background:var(--panel2); color:var(--ink); border:1px solid var(--line);
     border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer; min-width:48px; }
@@ -1258,7 +1267,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.17';
+const APP_VERSION = '2.18';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7631,6 +7640,32 @@ $('playBtn').onclick = ()=>{
 };
 
 // ---------- Immersive full-screen reading ----------
+let _imHideTimer = null;
+function imShowControls(){
+  document.body.classList.remove('controls-hidden');
+  if(_imHideTimer){ clearTimeout(_imHideTimer); }
+  // Auto-hide after a few seconds of no interaction
+  _imHideTimer = setTimeout(() => {
+    if(document.body.classList.contains('immersive')) document.body.classList.add('controls-hidden');
+  }, 3000);
+}
+function imHideControls(){
+  document.body.classList.add('controls-hidden');
+  if(_imHideTimer){ clearTimeout(_imHideTimer); _imHideTimer = null; }
+}
+function imToggleControls(){
+  if(document.body.classList.contains('controls-hidden')) imShowControls();
+  else imHideControls();
+}
+// Tap on the reading area toggles the chrome — but NOT when tapping a word
+// (that jumps narration) or any button/control.
+function _imTapHandler(e){
+  if(!document.body.classList.contains('immersive')) return;
+  const t = e.target;
+  if(t.closest && (t.closest('#immersiveBar') || t.closest('.w') || t.closest('button') ||
+     t.closest('a') || t.closest('input') || t.closest('select') || t.closest('.tabs'))) return;
+  imToggleControls();
+}
 function imSyncButtons(){
   const p = $('imPlay'); if(p) p.textContent = state.playing ? '⏸' : '▶';
   const vt = $('imViewToggle'); if(vt) vt.textContent = state.view === 'doc' ? '📝 Text' : '📄 Doc';
@@ -7644,32 +7679,37 @@ function enterImmersive(){
   try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
   imSyncButtons();
   window.scrollTo({top:0, behavior:'smooth'});
+  document.addEventListener('click', _imTapHandler, true);
+  imShowControls();   // show briefly, then auto-hide
 }
 function exitImmersive(){
   document.body.classList.remove('immersive');
+  document.body.classList.remove('controls-hidden');
+  if(_imHideTimer){ clearTimeout(_imHideTimer); _imHideTimer = null; }
+  document.removeEventListener('click', _imTapHandler, true);
   try { if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch(e){}
 }
 if($('enterFullscreen')) $('enterFullscreen').onclick = enterImmersive;
 if($('imExit')) $('imExit').onclick = exitImmersive;
-if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); };
-if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); };
-if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); };
+if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); imShowControls(); };
+if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); imShowControls(); };
+if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); imShowControls(); };
 if($('imViewToggle')) $('imViewToggle').onclick = () => {
   const target = state.view === 'doc' ? 'text' : 'doc';
   const tab = document.querySelector(`.tab[data-view="${target}"]`);
   if(tab) tab.click();
-  imSyncButtons();
+  imSyncButtons(); imShowControls();
 };
 if($('imLang')) $('imLang').onclick = () => {
   const order = ['both','guj','san','hin'];
   const next = order[(order.indexOf(state.langFilter) + 1) % order.length];
   const tab = document.querySelector(`.tab[data-lang="${next}"]`);
   if(tab) tab.click();
-  imSyncButtons();
+  imSyncButtons(); imShowControls();
 };
 document.addEventListener('fullscreenchange', () => {
   if(!document.fullscreenElement && document.body.classList.contains('immersive')){
-    document.body.classList.remove('immersive');
+    exitImmersive();
   }
 });
 $('stopBtn').onclick = ()=>{
