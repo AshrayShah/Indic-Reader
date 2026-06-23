@@ -1233,7 +1233,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.10';
+const APP_VERSION = '2.11';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7488,12 +7488,26 @@ function switchToView(view){
 // active, so the car head unit and lock screen show the now-playing text and
 // working Play/Pause/Next/Previous controls (incl. steering-wheel buttons).
 let _silentAudio = null;
+// Build a valid 0.5s silent WAV (8-bit mono, real silent samples = byte 128).
+// The earlier inline clip had a zero-length data chunk, so Android saw "no audio"
+// and never created a media session — that's why lock-screen controls were missing.
+function _silentWavUrl(){
+  const rate = 8000, secs = 0.5, n = Math.floor(rate * secs);
+  const buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+  const ws = (o, s) => { for(let i=0;i<s.length;i++) v.setUint8(o+i, s.charCodeAt(i)); };
+  ws(0,'RIFF'); v.setUint32(4, 36+n, true); ws(8,'WAVE');
+  ws(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,rate,true); v.setUint32(28,rate,true); v.setUint16(32,1,true); v.setUint16(34,8,true);
+  ws(36,'data'); v.setUint32(40,n,true);
+  for(let i=0;i<n;i++) v.setUint8(44+i, 128);   // 128 = silence for unsigned 8-bit PCM
+  return URL.createObjectURL(new Blob([buf], {type:'audio/wav'}));
+}
 function _makeSilentAudio(){
   if(_silentAudio) return _silentAudio;
-  // 1-second silent WAV, base64 (mono, 8kHz) — looped.
-  const wav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
-  const a = new Audio(wav);
-  a.loop = true; a.volume = 0; a.preload = 'auto';
+  const a = new Audio(_silentWavUrl());
+  a.loop = true;
+  a.volume = 1;            // samples are truly silent, so full volume is still inaudible
+  a.preload = 'auto';
   try { a.setAttribute('playsinline', ''); } catch(e){}
   _silentAudio = a;
   return a;
@@ -7502,7 +7516,13 @@ function startMediaKeepalive(){
   try {
     const a = _makeSilentAudio();
     const p = a.play();
-    if(p && p.catch) p.catch(()=>{});   // autoplay can reject until a user gesture; play() is called from the play-button gesture so it's fine
+    if(p && p.then){
+      p.then(() => {
+        // Audio is now active → the OS will show media controls; (re)assert state.
+        if('mediaSession' in navigator){ try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
+        if(typeof updateMediaSession === 'function') updateMediaSession();
+      }).catch(()=>{ /* blocked until a gesture; we call this from the play-button gesture */ });
+    }
   } catch(e){}
 }
 function stopMediaKeepalive(){
