@@ -284,6 +284,11 @@
     border-radius:12px; padding:10px 14px; font-size:16px; cursor:pointer; min-width:48px; }
   #immersiveBar .ibtn.primary{ background:var(--accent); color:var(--on-accent); border-color:transparent; }
   #immersiveBar .ibtn.wide{ font-size:14px; }
+  /* Single full-screen control: hide the top tab while immersive (the bottom
+     bar's Exit button is the toggle), and make both states prominent. */
+  body.immersive #enterFullscreen{ display:none !important; }
+  #enterFullscreen{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
+  #immersiveBar .ibtn.exit{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   .toggle .knob{width:36px;height:20px;background:var(--knob-bg);border-radius:999px;position:relative;transition:.15s}
   .toggle .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
     background:var(--knob-fg);border-radius:50%;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -895,7 +900,7 @@
 
 <!-- Minimal control bar — visible only in immersive full-screen mode -->
 <div id="immersiveBar">
-  <button class="ibtn" id="imExit" title="Exit full screen">⤢</button>
+  <button class="ibtn exit wide" id="imExit" title="Exit full screen">⤢ Exit</button>
   <button class="ibtn" id="imPrev" title="Previous">⏮</button>
   <button class="ibtn primary" id="imPlay" title="Play / Pause">▶</button>
   <button class="ibtn" id="imNext" title="Next">⏭</button>
@@ -1267,7 +1272,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.19';
+const APP_VERSION = '2.20';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7638,6 +7643,10 @@ $('playBtn').onclick = ()=>{
   // user has opted into background/screen-off play; otherwise narration is plain,
   // stable TTS that plays reliably through the car.
   if(state.keepPlayingHidden){ startMediaKeepalive(); }   // must run inside this user-gesture handler
+  // Always read in full-screen: enter immersive mode when narration starts.
+  if(typeof enterImmersive === 'function' && !document.body.classList.contains('immersive')){
+    try { enterImmersive(); } catch(e){}
+  }
   // Optionally read in Document View (the scanned page) during narration.
   if(state.docViewOnPlay && state.view !== 'doc'){ switchToView('doc'); }
   if(state.current.lineIdx<0) state.current = {lineIdx:0, wordIdx:0};
