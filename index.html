@@ -1233,7 +1233,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.11';
+const APP_VERSION = '2.12';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1310,8 +1310,27 @@ const TTS = (function(){
   // cancelEpoch invalidates pending deferred cancels — every speak() bumps it
   // so the 50/150ms followups from a prior hardStop() don't kill the new utterance.
   let cancelEpoch = 0;
+  // Chrome (esp. Android) silently stops speech after a pause or ~15s of output.
+  // A periodic pause()+resume() while speaking keeps the engine alive — this is
+  // the standard workaround. Started on play, stopped on stop.
+  let _keepaliveTimer = null;
+  function startResumeKeepalive(){
+    if(!ok || _keepaliveTimer) return;
+    _keepaliveTimer = setInterval(() => {
+      try {
+        if(window.speechSynthesis.speaking && !window.speechSynthesis.paused){
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      } catch(e){}
+    }, 9000);
+  }
+  function stopResumeKeepalive(){
+    if(_keepaliveTimer){ clearInterval(_keepaliveTimer); _keepaliveTimer = null; }
+  }
   return {
     available: ok,
+    startResumeKeepalive, stopResumeKeepalive,
     cancel(){
       if(!ok) return;
       cancelEpoch++;
@@ -1398,7 +1417,7 @@ const state = {
   forceOCR: false,
   ocrCache: (function(){ try { return localStorage.getItem('indic_ocr_cache') !== '0'; } catch(e){ return true; } })(),
   flagLowConf: (function(){ try { return localStorage.getItem('indic_flag_lowconf') !== '0'; } catch(e){ return true; } })(),
-  view: 'text',
+  view: (function(){ try { const v = localStorage.getItem('indic_view'); return (v === 'doc' || v === 'text') ? v : 'text'; } catch(e){ return 'text'; } })(),
   // Reading layout: 'single' (A), 'split' (B), 'stacked' (C)
   // Persisted to localStorage as 'indic_reader_layout_v1'.
   layout: (function(){
@@ -3898,6 +3917,12 @@ function buildLines(silent){
     $('player').style.display='block';
     renderTextView();
     renderDocView();
+    // Reflect the persisted Text/Document view choice in the tabs + display
+    try {
+      document.querySelectorAll('.tab[data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === state.view));
+      $('textView').style.display = state.view==='text' ? 'block':'none';
+      $('docView').style.display  = state.view==='doc'  ? 'block':'none';
+    } catch(_){}
     updatePageInfo();
     updateOutlineUI();
     if(!silent){
@@ -6188,6 +6213,7 @@ document.querySelectorAll('.tab[data-view]').forEach(t=>{
     document.querySelectorAll('.tab[data-view]').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     state.view = t.dataset.view;
+    try { localStorage.setItem('indic_view', state.view); } catch(_){}
     $('textView').style.display = state.view==='text' ? 'block':'none';
     $('docView').style.display  = state.view==='doc' ? 'block':'none';
     highlight();
@@ -7268,6 +7294,7 @@ async function playFromCurrent(opts={}){
   }
   state.playing = true; $('playBtn').firstElementChild.textContent='⏸';
   acquireWakeLock();  // keep screen on during narration
+  TTS.startResumeKeepalive();   // guard against Chrome stopping mid-session
   updateMediaSession();
   await playStep(opts.overrideFilter, session);
 }
@@ -7453,7 +7480,7 @@ async function playStep(overrideFilterOnce, session){
     }
   }
 
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); $('playBtn').firstElementChild.textContent='▶';
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive(); $('playBtn').firstElementChild.textContent='▶';
   state.current = {lineIdx:-1, wordIdx:-1};
   highlight();
   if('mediaSession' in navigator){
@@ -7532,7 +7559,7 @@ function stopMediaKeepalive(){
 $('playBtn').onclick = ()=>{
   if(state.playing){
     state.session++;
-    state.playing = false; releaseWakeLock(); stopMediaKeepalive();
+    state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
     TTS.hardStop();
     $('playBtn').firstElementChild.textContent='▶';
     if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -7546,7 +7573,7 @@ $('playBtn').onclick = ()=>{
 };
 $('stopBtn').onclick = ()=>{
   state.session++;
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   state.current={lineIdx:-1,wordIdx:-1};
@@ -7571,7 +7598,7 @@ function pauseForInterruption(){
   if(!state.playing) return;          // nothing playing → nothing to do
   _resumeAfterInterruption = true;    // remember to resume on return
   state.session++;                    // invalidate the in-flight speak loop
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -7666,7 +7693,7 @@ $('nextPage').onclick = ()=>{
 $('pageInfo').onclick = ()=>{
   if(!state.pdfDoc) return;
   state.session++;
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();
   $('playBtn').firstElementChild.textContent='▶';
   $('pageSection').style.display = 'block';
@@ -9434,7 +9461,7 @@ function clearAll(){
   // STOP all in-flight work before tearing down state
   state.session++;             // any awaiting playStep will exit
   state.cancel = true;         // any awaiting OCR/file extraction will exit
-  state.playing = false; releaseWakeLock(); stopMediaKeepalive();
+  state.playing = false; releaseWakeLock(); stopMediaKeepalive(); TTS.stopResumeKeepalive();
   TTS.hardStop();              // aggressive — actually stops audio
   clearTimeout(state._tapTimer); state._tapTimer = null;
   if(state.ocrWorker){
