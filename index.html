@@ -1267,7 +1267,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.18';
+const APP_VERSION = '2.19';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -3966,6 +3966,11 @@ function buildLines(silent){
     } catch(_){}
     updatePageInfo();
     updateOutlineUI();
+    // Auto-enter immersive full-screen once content is ready (only when freshly
+    // processed, not on silent rebuilds, and not if already immersive).
+    if(!silent && typeof enterImmersive === 'function' && !document.body.classList.contains('immersive')){
+      setTimeout(() => { try { enterImmersive(); } catch(e){} }, 150);
+    }
     if(!silent){
       // Show the voice-install banner if needed (function is defined later in the file)
       if(typeof checkVoiceQualityAndPrompt === 'function') checkVoiceQualityAndPrompt();
@@ -7641,31 +7646,10 @@ $('playBtn').onclick = ()=>{
 
 // ---------- Immersive full-screen reading ----------
 let _imHideTimer = null;
-function imShowControls(){
-  document.body.classList.remove('controls-hidden');
-  if(_imHideTimer){ clearTimeout(_imHideTimer); }
-  // Auto-hide after a few seconds of no interaction
-  _imHideTimer = setTimeout(() => {
-    if(document.body.classList.contains('immersive')) document.body.classList.add('controls-hidden');
-  }, 3000);
-}
-function imHideControls(){
-  document.body.classList.add('controls-hidden');
-  if(_imHideTimer){ clearTimeout(_imHideTimer); _imHideTimer = null; }
-}
-function imToggleControls(){
-  if(document.body.classList.contains('controls-hidden')) imShowControls();
-  else imHideControls();
-}
-// Tap on the reading area toggles the chrome — but NOT when tapping a word
-// (that jumps narration) or any button/control.
-function _imTapHandler(e){
-  if(!document.body.classList.contains('immersive')) return;
-  const t = e.target;
-  if(t.closest && (t.closest('#immersiveBar') || t.closest('.w') || t.closest('button') ||
-     t.closest('a') || t.closest('input') || t.closest('select') || t.closest('.tabs'))) return;
-  imToggleControls();
-}
+function imShowControls(){ document.body.classList.remove('controls-hidden'); }
+function imHideControls(){ /* controls stay visible — no auto-hide */ }
+function imToggleControls(){ /* no-op: floating controls always shown */ }
+function _imTapHandler(){ /* tap no longer toggles chrome; controls are persistent */ }
 function imSyncButtons(){
   const p = $('imPlay'); if(p) p.textContent = state.playing ? '⏸' : '▶';
   const vt = $('imViewToggle'); if(vt) vt.textContent = state.view === 'doc' ? '📝 Text' : '📄 Doc';
@@ -7676,23 +7660,20 @@ function imSyncButtons(){
 }
 function enterImmersive(){
   document.body.classList.add('immersive');
+  document.body.classList.remove('controls-hidden');   // always show the floating bar
   try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
   imSyncButtons();
   window.scrollTo({top:0, behavior:'smooth'});
-  document.addEventListener('click', _imTapHandler, true);
-  imShowControls();   // show briefly, then auto-hide
 }
 function exitImmersive(){
   document.body.classList.remove('immersive');
   document.body.classList.remove('controls-hidden');
-  if(_imHideTimer){ clearTimeout(_imHideTimer); _imHideTimer = null; }
-  document.removeEventListener('click', _imTapHandler, true);
   try { if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch(e){}
 }
 if($('enterFullscreen')) $('enterFullscreen').onclick = enterImmersive;
 if($('imExit')) $('imExit').onclick = exitImmersive;
-if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); imShowControls(); };
-if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); imShowControls(); };
+if($('imPlay')) $('imPlay').onclick = () => { $('playBtn').click(); setTimeout(imSyncButtons, 60); };
+if($('imPrev')) $('imPrev').onclick = () => { $('prevPage').click(); };
 if($('imNext')) $('imNext').onclick = () => { $('nextPage').click(); imShowControls(); };
 if($('imViewToggle')) $('imViewToggle').onclick = () => {
   const target = state.view === 'doc' ? 'text' : 'doc';
