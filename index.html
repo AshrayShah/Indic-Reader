@@ -1233,7 +1233,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.12';
+const APP_VERSION = '2.13';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1310,12 +1310,14 @@ const TTS = (function(){
   // cancelEpoch invalidates pending deferred cancels — every speak() bumps it
   // so the 50/150ms followups from a prior hardStop() don't kill the new utterance.
   let cancelEpoch = 0;
-  // Chrome (esp. Android) silently stops speech after a pause or ~15s of output.
-  // A periodic pause()+resume() while speaking keeps the engine alive — this is
-  // the standard workaround. Started on play, stopped on stop.
+  // Chrome (DESKTOP) silently stops speech after ~15s; a periodic pause()+resume()
+  // keeps it alive. On ANDROID this same hack DROPS utterances (you see the word
+  // highlight advance with no audio), so we must NOT do it there — Android's
+  // engine doesn't have the 15s bug. Gate to non-Android.
+  const _isAndroid = (typeof navigator !== 'undefined') && /Android/i.test(navigator.userAgent || '');
   let _keepaliveTimer = null;
   function startResumeKeepalive(){
-    if(!ok || _keepaliveTimer) return;
+    if(!ok || _isAndroid || _keepaliveTimer) return;
     _keepaliveTimer = setInterval(() => {
       try {
         if(window.speechSynthesis.speaking && !window.speechSynthesis.paused){
@@ -1354,6 +1356,10 @@ const TTS = (function(){
     speak(u){
       if(!ok || !u) return;
       cancelEpoch++; // critical: voids any pending deferred cancels from earlier hardStop()
+      // After a long idle (e.g. the OCR gap between pages in continuous mode) the
+      // engine can be left in a paused/stuck state on Android, making the next
+      // utterance fire onend instantly with no audio. resume() clears that.
+      try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){}
       try{ window.speechSynthesis.speak(u); }catch(e){}
     },
     getVoices(){ if(!ok) return []; try{ return window.speechSynthesis.getVoices()||[]; }catch(e){ return []; } },
@@ -7565,7 +7571,12 @@ $('playBtn').onclick = ()=>{
     if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
     return;
   }
-  startMediaKeepalive();   // must run inside this user-gesture handler
+  // The silent-audio keepalive surfaces lock-screen/Bluetooth controls, but it
+  // holds MEDIA audio focus — which on Android Auto can starve the speech channel
+  // (you'd see the word highlight move with no sound). So only run it when the
+  // user has opted into background/screen-off play; otherwise narration is plain,
+  // stable TTS that plays reliably through the car.
+  if(state.keepPlayingHidden){ startMediaKeepalive(); }   // must run inside this user-gesture handler
   // Optionally read in Document View (the scanned page) during narration.
   if(state.docViewOnPlay && state.view !== 'doc'){ switchToView('doc'); }
   if(state.current.lineIdx<0) state.current = {lineIdx:0, wordIdx:0};
