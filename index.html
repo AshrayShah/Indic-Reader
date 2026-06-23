@@ -622,26 +622,51 @@
 
   <div class="row between" style="margin-top:12px;flex-wrap:wrap;gap:8px">
     <div class="row" style="gap:14px;flex-wrap:wrap;align-items:center">
-      <label class="toggle">
-        <input type="checkbox" id="forceOCR">
-        <span class="knob"></span>
-        <span style="font-size:13px">Force OCR</span>
-      </label>
-      <label class="toggle" title="Use cloud OCR (Google Cloud Vision / OCR.space) for higher accuracy on poor scans">
-        <input type="checkbox" id="cloudOCRToggle">
-        <span class="knob"></span>
-        <span style="font-size:13px">☁️ Cloud OCR</span>
-      </label>
-      <label class="toggle" id="cloudFallbackToggleWrap" style="display:none" title="When cloud OCR is unreachable, automatically use local OCR instead">
-        <input type="checkbox" id="cloudFallbackToggle" checked>
-        <span class="knob"></span>
-        <span style="font-size:12px;color:var(--muted)">↩ Fallback to local</span>
-      </label>
-      <button class="btn ghost" id="cloudOCRSetup" style="font-size:11px;padding:6px 9px" title="Configure cloud OCR provider and API key">⚙</button>
+      <span style="font-size:11px;color:var(--muted)">OCR &amp; playback options are in <b>⚙️ Settings</b></span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn ghost" id="openSettings" style="font-size:13px" title="OCR, playback and layout settings">⚙️ Settings</button>
       <button class="btn ghost" id="openLibrary" style="font-size:13px" title="Your saved links, documents, settings and recent files">📚 Library</button>
       <button class="btn danger" id="clearAll">🗑 Clear All</button>
+    </div>
+  </div>
+
+  <!-- Settings panel: OCR, playback, layout (set-and-forget controls) -->
+  <div id="settingsBox" style="display:none;margin-top:10px;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="font-size:14px">⚙️ Settings</b>
+      <button class="btn ghost" id="settingsClose" style="font-size:12px">✕ Close</button>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 6px">OCR</div>
+    <div class="row" style="gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <label class="toggle"><input type="checkbox" id="forceOCR"><span class="knob"></span><span style="font-size:13px">Force OCR</span></label>
+      <label class="toggle" title="Use cloud OCR (Google Cloud Vision / OCR.space) for higher accuracy on poor scans"><input type="checkbox" id="cloudOCRToggle"><span class="knob"></span><span style="font-size:13px">☁️ Cloud OCR</span></label>
+      <label class="toggle" id="cloudFallbackToggleWrap" style="display:none" title="When cloud OCR is unreachable, automatically use local OCR instead"><input type="checkbox" id="cloudFallbackToggle" checked><span class="knob"></span><span style="font-size:12px;color:var(--muted)">↩ Fallback to local</span></label>
+      <button class="btn ghost" id="cloudOCRSetup" style="font-size:11px;padding:6px 9px" title="Configure cloud OCR provider and API key">⚙ Cloud setup</button>
+      <label class="toggle"><input type="checkbox" id="ocrCacheMode" checked><span class="knob"></span><span class="toggle-label">🗄 OCR cache</span></label>
+      <label class="toggle"><input type="checkbox" id="flagLowConf" checked><span class="knob"></span><span class="toggle-label">⚠️ Check OCR</span></label>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 6px">Playback</div>
+    <div class="row" style="gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <label class="toggle"><input type="checkbox" id="pauseOnCall" checked><span class="knob"></span><span class="toggle-label">📞 Pause on call</span></label>
+      <label class="toggle"><input type="checkbox" id="resumeMode" checked><span class="knob"></span><span class="toggle-label">📍 Resume</span></label>
+      <label class="toggle" title="Keep narrating when the screen turns off or the app goes to the background (where the device allows it)."><input type="checkbox" id="keepPlayingHidden"><span class="knob"></span><span class="toggle-label">🔋 Screen-off play</span></label>
+      <label class="toggle" title="Show the scanned page (Document View) automatically when narration starts"><input type="checkbox" id="docViewOnPlay"><span class="knob"></span><span class="toggle-label">📄 Doc view on play</span></label>
+      <label class="toggle" title="When narrating, also read each line's translation aloud"><input type="checkbox" id="speakXlate"><span class="knob"></span><span class="toggle-label">🔊 Read translation in narration</span></label>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 6px">Reading layout</div>
+    <div class="layout-selector" style="display:inline-flex;gap:4px;align-items:center" title="Reading layout">
+      <button class="tab layout-tab active" data-layout="single" title="A — Single column. Translation appears only when you tap a verse.">A</button>
+      <button class="tab layout-tab" data-layout="split" title="B — Side-by-side (auto). Sanskrit on left, translations on right.">B</button>
+      <button class="tab layout-tab" data-layout="stacked" title="C — Stacked pairs (auto). Each verse followed by its translation.">C</button>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px">Document</div>
+    <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center">
+      <button class="btn ghost" id="copyVisible" style="font-size:12px;padding:6px 10px" title="Copy only the lines matching the current language filter">📋 Copy Filtered</button>
     </div>
   </div>
 
@@ -691,12 +716,6 @@
   <div class="tabs">
     <button class="tab active" data-view="text">📝 Text View</button>
     <button class="tab" data-view="doc">📄 Document View</button>
-    <div class="layout-selector" style="display:inline-flex;gap:4px;margin-left:6px;padding-left:6px;border-left:1px solid var(--line);align-items:center" title="Reading layout">
-      <span style="font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-right:2px">Layout</span>
-      <button class="tab layout-tab active" data-layout="single" title="A — Single column. Translation appears only when you tap a verse.">A</button>
-      <button class="tab layout-tab" data-layout="split" title="B — Side-by-side (auto). Sanskrit on left, translations on right. Auto-falls back to C on narrow screens.">B</button>
-      <button class="tab layout-tab" data-layout="stacked" title="C — Stacked pairs (auto). Each verse followed by its translation. Best for phone portrait.">C</button>
-    </div>
     <div class="langfilter">
       <button class="tab active" data-lang="both">All</button>
       <button class="tab" data-lang="guj">ગુ Guj</button>
@@ -705,43 +724,18 @@
     </div>
   </div>
 
-  <!-- Reading preferences (set-and-forget) — moved up here to keep the bottom
-       player uncluttered. These are toggled rarely, so they live near Layout. -->
-  <div class="row" style="margin-bottom:8px;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)">
-    <span style="font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Prefs</span>
-    <label class="toggle">
-      <input type="checkbox" id="pauseOnCall" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">📞 Pause on call</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="resumeMode" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">📍 Resume</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="ocrCacheMode" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">🗄 OCR cache</span>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="flagLowConf" checked>
-      <span class="knob"></span>
-      <span class="toggle-label">⚠️ Check OCR</span>
-    </label>
-  </div>
+  <!-- Reading preferences moved to ⚙️ Settings to keep the reader uncluttered. -->
+
 
   <div class="row" style="margin-bottom:8px;gap:6px;flex-wrap:wrap;align-items:center">
     <button class="btn ghost" id="copyText" style="font-size:12px;padding:6px 10px">📋 Copy Text</button>
-    <button class="btn ghost" id="copyVisible" style="font-size:12px;padding:6px 10px">📋 Copy Filtered</button>
     <button class="btn ghost" id="saveDocLib" style="font-size:12px;padding:6px 10px" title="Save this document's text to your Library (on-device)">💾 Save document</button>
     <button class="btn ghost" id="outlineBtn" style="font-size:12px;padding:6px 10px;display:none" title="Document outline / table of contents">📑 Outline</button>
-    <button class="btn ghost" id="xlatePageGuHi" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati lines to Hindi (Sanskrit verses are left unchanged)">🌐 ગુ→हि</button>
-    <button class="btn ghost" id="xlatePageHiGu" style="font-size:12px;padding:6px 10px" title="Translate this page's Hindi lines to Gujarati (Sanskrit verses are left unchanged)">🌐 हि→ગુ</button>
-    <button class="btn ghost" id="xlatePageEn" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati and Hindi lines to English (Sanskrit verses are left unchanged)">🌐 →EN</button>
-    <label class="btn ghost" id="speakXlateWrap" style="font-size:12px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer" title="When narrating, also read each line's translation aloud">
-      <input type="checkbox" id="speakXlate" style="margin:0"> 🔊 Read translation
-    </label>
+    <span id="translateControls" style="display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button class="btn ghost" id="xlatePageGuHi" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati lines to Hindi (Sanskrit verses are left unchanged)">🌐 ગુ→हि</button>
+      <button class="btn ghost" id="xlatePageHiGu" style="font-size:12px;padding:6px 10px" title="Translate this page's Hindi lines to Gujarati (Sanskrit verses are left unchanged)">🌐 हि→ગુ</button>
+      <button class="btn ghost" id="xlatePageEn" style="font-size:12px;padding:6px 10px" title="Translate this page's Gujarati and Hindi lines to English (Sanskrit verses are left unchanged)">🌐 →EN</button>
+    </span>
     <span id="copyStatus" style="font-size:11px;color:var(--muted);align-self:center"></span>
     <span style="flex:1"></span>
     <span id="ocrEngineIndicator" onclick="showOcrLog()" style="display:none;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600;cursor:pointer" title="Tap to see OCR diagnostic log"></span>
@@ -848,16 +842,6 @@
       <input type="checkbox" id="continuousMode">
       <span class="knob"></span>
       <span class="toggle-label">📖 Continuous</span>
-    </label>
-    <label class="toggle" title="Keep narrating when the screen turns off or the app goes to the background (where the device allows it). Keeps the screen awake while reading.">
-      <input type="checkbox" id="keepPlayingHidden">
-      <span class="knob"></span>
-      <span class="toggle-label">🔋 Screen-off play</span>
-    </label>
-    <label class="toggle" title="Show the scanned page (Document View) automatically when narration starts">
-      <input type="checkbox" id="docViewOnPlay">
-      <span class="knob"></span>
-      <span class="toggle-label">📄 Doc view on play</span>
     </label>
   </div>
 
@@ -1233,7 +1217,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.13';
+const APP_VERSION = '2.14';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -3928,6 +3912,7 @@ function buildLines(silent){
       document.querySelectorAll('.tab[data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === state.view));
       $('textView').style.display = state.view==='text' ? 'block':'none';
       $('docView').style.display  = state.view==='doc'  ? 'block':'none';
+      if(typeof syncTranslateControlsVisibility === 'function') syncTranslateControlsVisibility();
     } catch(_){}
     updatePageInfo();
     updateOutlineUI();
@@ -6222,6 +6207,7 @@ document.querySelectorAll('.tab[data-view]').forEach(t=>{
     try { localStorage.setItem('indic_view', state.view); } catch(_){}
     $('textView').style.display = state.view==='text' ? 'block':'none';
     $('docView').style.display  = state.view==='doc' ? 'block':'none';
+    if(typeof syncTranslateControlsVisibility === 'function') syncTranslateControlsVisibility();
     highlight();
     if(window._updateBackToTop) window._updateBackToTop();
   };
@@ -8990,8 +8976,26 @@ async function translatePage(dir){
         const block = document.createElement('div');
         block.className = 'page-translation';
         block.dataset.dir = dir;
-        block.style.cssText = `margin:4px 0 6px;padding:7px 10px;background:var(--panel2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:15px;line-height:1.6;font-family:${D.font};color:var(--ink)`;
-        block.textContent = D.prefix + out;
+        block.style.cssText = `display:flex;align-items:flex-start;gap:8px;margin:4px 0 6px;padding:7px 10px;background:var(--panel2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:15px;line-height:1.6;font-family:${D.font};color:var(--ink)`;
+        // Per-verse 🔊 button: narrates THIS verse's translation on tap.
+        const play = document.createElement('button');
+        play.type = 'button';
+        play.className = 'btn ghost';
+        play.style.cssText = 'font-size:13px;padding:2px 8px;flex:0 0 auto;line-height:1.4';
+        play.textContent = '🔊';
+        play.title = 'Read this translation aloud';
+        const speakText = out, speakLang = D.tl;
+        play.onclick = (ev) => {
+          ev.stopPropagation();
+          try { TTS.hardStop(); } catch(_){}
+          const sess = ++state.session;          // own the speech channel
+          if(typeof speakPlainText === 'function') speakPlainText(speakText, speakLang, sess, ()=>{});
+        };
+        const txt = document.createElement('span');
+        txt.style.cssText = 'flex:1 1 auto';
+        txt.textContent = D.prefix + out;
+        block.appendChild(play);
+        block.appendChild(txt);
         el.appendChild(block);
       }
     }
@@ -10328,6 +10332,23 @@ if($('openLibrary')){
 }
 if($('libraryClose')){
   $('libraryClose').onclick = () => { $('libraryBox').style.display = 'none'; };
+}
+// Settings panel open/close
+if($('openSettings')){
+  $('openSettings').onclick = () => {
+    const box = $('settingsBox');
+    const showing = box.style.display !== 'none';
+    if(showing){ box.style.display = 'none'; }
+    else { box.style.display = 'block'; box.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  };
+}
+if($('settingsClose')){
+  $('settingsClose').onclick = () => { $('settingsBox').style.display = 'none'; };
+}
+// Translate controls appear only in Text View (translations attach to text lines)
+function syncTranslateControlsVisibility(){
+  const el = $('translateControls');
+  if(el) el.style.display = (state.view === 'text') ? 'inline-flex' : 'none';
 }
 
 $('driveLoad').onclick = async ()=>{
