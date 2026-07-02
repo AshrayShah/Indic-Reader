@@ -257,19 +257,14 @@
   body.immersive .player { display:none !important; }
   /* Inside the reader, keep ONLY the view tabs and the active view (text/doc) */
   body.immersive #readerSection > *:not(.tabs):not(#textView):not(#docView){ display:none !important; }
-  body.immersive #readerSection .tabs .langfilter { display:none !important; }
   body.immersive #readerSection .reocr-bar { display:none !important; }
-  body.immersive #readerSection .tabs { position:sticky; top:0; z-index:30; background:var(--bg); padding:6px 0; }
   body.immersive { padding-bottom:0; }
   body.immersive #readerSection { margin:0; border:none; background:var(--bg); padding:6px 10px; }
   /* Document View fills the whole screen in immersive (override the 55vh cap) */
   body.immersive #docView{ max-height:none !important; height:calc(100vh - 76px); overflow-y:auto; border-radius:0; }
-  body.immersive.controls-hidden #docView{ height:100vh; }
   body.immersive #docView img{ width:100% !important; height:auto !important; }
   body.immersive #textView{ min-height:calc(100vh - 120px); }
   /* Tap-to-toggle: hide chrome until the user taps the reading area */
-  body.immersive.controls-hidden #readerSection .tabs{ display:none !important; }
-  body.immersive.controls-hidden #immersiveBar{ transform:translateY(120%); opacity:0; pointer-events:none; }
   /* Minimal control bar shown only in immersive mode */
   #immersiveBar{ display:none; }
   body.immersive #immersiveBar{
@@ -289,7 +284,17 @@
   body.immersive #enterFullscreen{ display:none !important; }
   /* In full screen the top tabs are hidden so the system status bar (time,
      battery) shows. View + language switching live in the bottom bar instead. */
-  body.immersive #readerSection .tabs{ display:none !important; }
+  /* Full screen: the tabs row shows ONLY the language filter, floating just
+     above the bottom control bar. View switching stays in the bar (📄/📝). */
+  body.immersive #readerSection .tabs{ display:block !important; position:fixed; left:0; right:0;
+    bottom:calc(62px + env(safe-area-inset-bottom)); z-index:49; background:transparent;
+    border:none; padding:0; margin:0; pointer-events:none; }
+  body.immersive #readerSection .tabs > *:not(.langfilter){ display:none !important; }
+  body.immersive #readerSection .tabs .langfilter{ display:flex !important; pointer-events:auto;
+    justify-content:center; margin:0 auto; width:max-content; max-width:96vw;
+    background:color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter:blur(8px);
+    border:1px solid var(--line); border-radius:12px; padding:6px 8px; }
+  body.immersive #imLang{ display:none !important; }  /* full bar replaces the cycle button */
   body.immersive #readerSection{ padding-top:calc(env(safe-area-inset-top) + 26px); }
   /* Custom status strip (time / battery / signal) — true full screen hides the
      OS status bar, so we render our own thin strip at the very top. */
@@ -1332,7 +1337,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.28';
+const APP_VERSION = '2.31';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1636,9 +1641,35 @@ function detectLang(text){
   let g=0,s=0;
   for(const ch of text){ if(GUJ.test(ch)) g++; else if(SAN.test(ch)) s++; }
   if(g===0 && s===0) return 'unk';
-  if(g >= s) return 'guj';
+  if(g >= s) return detectGujaratiScriptFlavor(text);
   // Devanagari script detected — distinguish Hindi from Sanskrit
   return detectDevanagariFlavor(text);
+}
+
+// Gujarati-script text can be GUJARATI PROSE or SANSKRIT ŚLOKAS — Gujarati
+// editions print Sanskrit verses in Gujarati script. Distinguishing them
+// matters: Sanskrit lines get the सं speed, chant mode, and scansion, while
+// Gujarati prose follows the ગુ slider. Signals mirror the Devanagari-flavor
+// logic, transposed to the Gujarati block.
+const GUJ_FN_WORDS = new Set(['છે','છો','છીએ','છું','હતું','હતા','હતી','ના','ને','નું','ની','નો','થી','માં','અને','કે','પણ','આ','તે','એ','જે','તો','જ','થાય','કરે','કરી','કરવા','માટે','વગેરે','એક','બે','સાથે','પછી','પર','હોય','શકે','રહે','આવે','જાય','બને','સૌ','કોઈ','તથા','અથવા','એમ','તેમ','જેમ','હવે','ત્યારે','જ્યારે','અહીં','ત્યાં']);
+function detectGujaratiScriptFlavor(text){
+  const tokens = text.split(/[\s\u0964\u0965।॥,\.\?!]+/).filter(t => t.length > 0);
+  let gujScore = 0;
+  for(const tok of tokens){ if(GUJ_FN_WORDS.has(tok)) gujScore++; }
+  // Sanskrit signals in Gujarati script:
+  // 1. Visarga ઃ (U+0A83) — essentially absent from Gujarati prose
+  const visarga = (text.match(/\u0A83/g) || []).length;
+  // 2. Word-final halanta (્ at token end, e.g. સમવેતામ્, તત્, યત્)
+  const viramaEnds = tokens.filter(t => /\u0ACD$/.test(t)).length;
+  // 3. Sanskrit case endings transposed to Gujarati script
+  const caseEndings = tokens.filter(t =>
+    /(સ્ય|ાય|ભ્યઃ|ેભ્યઃ|ાનામ્|ાણામ્|ેષુ|ાસુ|યોઃ|સ્મૈ|સ્માત્|સ્મિન્|ભિઃ)$/.test(t)
+  ).length;
+  // 4. Dense conjuncts (2+ halants inside one token) — સચ્ચિદાનન્દ etc.
+  const denseConjunct = tokens.filter(t => (t.match(/\u0ACD/g) || []).length >= 2).length;
+  const sanScore = Math.min(visarga, 4) + Math.min(viramaEnds, 3) + caseEndings + Math.min(denseConjunct, 3);
+  if(sanScore >= 2 && sanScore > gujScore) return 'san';
+  return 'guj';
 }
 function hasIndic(t){ return INDIC.test(t); }
 
@@ -2219,8 +2250,7 @@ async function reopenDoc(id){
     showError('Could not reopen the file',
       (e && e.message) || 'Try opening it again with Choose Files.', []);
   }
-}
-function reopenLastDoc(){ return reopenDoc(); }   // back-compat
+}   // back-compat
 {
   refreshContinueLastBtn();
 }
@@ -3612,11 +3642,6 @@ async function runOCR(input, onProg, langs){
   }
 }
 
-// Backward-compat: PDF native-text fallback only needs the text string
-async function runOCRText(input, onProg){
-  const r = await runOCRWithFallback(input, onProg);
-  return r.text;
-}
 
 // ---------- PDF ----------
 async function openPDF(s){
@@ -5264,7 +5289,6 @@ function meterMarks(text, countOnly){
   }
   return '';
 }
-function countSyllablesDev(text){ return countAksharasDev(text); }
 
 // Gather the full verse text that the given Sanskrit line belongs to, by
 // joining adjacent Sanskrit lines. A verse ends at a double-danda ॥ (or the end
@@ -6624,17 +6648,6 @@ function pickVoice(lang){
   return candidates[0] || TTS.getVoices()[0] || null;
 }
 
-// Detect whether an actual Indic (Devanagari/Gujarati-script-speaking) voice
-// is available. If not, we'll romanize Sanskrit to IAST so even an English
-// voice produces something closer to Indian pronunciation than gibberish.
-function hasNativeIndicVoice(lang){
-  const voices = TTS.getVoices();
-  if(lang === 'guj'){
-    return voices.some(v => /^gu/i.test(v.lang) || /^hi/i.test(v.lang) || /^mr/i.test(v.lang));
-  }
-  // For Sanskrit, any Devanagari-script voice works
-  return voices.some(v => /^sa|^hi|^mr/i.test(v.lang));
-}
 
 // ---------- Devanagari → IAST-ish romanization (fallback for non-Indic voices)
 // Maps each Devanagari akshara/vowel/matra to its Latin transliteration that
@@ -7201,7 +7214,11 @@ function speakLine(li, startWi, session, onEnd){
   // is installed on Windows), romanizing to "krishna" sounds Indian-ish; sending
   // raw "कृष्ण" to an English voice produces gibberish. Applies to both Sanskrit
   // and Hindi since both use Devanagari script.
-  const voice = pickVoice(ln.lang);
+  // Voice must follow the SCRIPT, rate follows the LANGUAGE: a Sanskrit śloka
+  // printed in Gujarati script needs the Gujarati voice (a Hindi voice can't
+  // read Gujarati glyphs) but the सं speed and chant pacing.
+  const gujScript = /[\u0A80-\u0AFF]/.test(wordsArr.map(w => w.t).join(''));
+  const voice = pickVoice(gujScript ? 'guj' : ln.lang);
   const isDev = (ln.lang === 'san' || ln.lang === 'hin');
   const useRomanization =
     isDev && voice && !/^sa|^hi|^mr|^gu/i.test(voice.lang||'');
@@ -7254,16 +7271,19 @@ function speakLine(li, startWi, session, onEnd){
 // Normal (non-chhand-segmented) line narration. Extracted so the chant path can
 // fall back to it when a verse can't be segmented into padas.
 function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant, voice, useRomanization){
+  // Script decides the phonetics pipeline + voice tag; ln.lang decides the rate.
+  const gujScript = /[\u0A80-\u0AFF]/.test(wordsArr.map(w => w.t).join(''));
+  const useGujPipeline = (ln.lang === 'guj') || gujScript;
   const transformed = wordsArr.map(w => {
     let t = w.t;
     // Skip verse-number markers in narration (don't want TTS saying "one")
-    if(looksLikeVerseNumber(t) || /^[०-९0-9]+$/.test(t)){
+    if(looksLikeVerseNumber(t) || /^[०-९0-9૦-૯]+$/.test(t)){
       return '';
     }
-    if(isSan){
-      t = applySanskritProsody(t, chant);
+    if(isSan && !gujScript){
+      t = applySanskritProsody(t, chant);   // Devanagari-specific rewrites
     }
-    if(ln.lang === 'guj'){
+    if(useGujPipeline){
       t = gujaratiTTSPhonetics(t);   // geminates, visarga, ૐ — speech only
       // No Gujarati voice on this device (iOS): the Hindi fallback voice skips
       // Gujarati glyphs and speaks only punctuation. Transliterate to
@@ -7275,11 +7295,13 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
     if(useRomanization){
       t = romanizeDevanagari(t);
     }
-    // All Indic speech: dandas become natural pauses (Hindi lines too — the
-    // Sanskrit path already did this via prosody), and stray quote marks are
-    // dropped so voices don't verbalize them.
-    if(!isSan && ln.lang !== 'guj'){
-      t = t.replace(/\u0964/g, ', ').replace(/\u0965/g, '. ');
+    // All Indic speech: dandas become natural pauses (the Devanagari-Sanskrit
+    // path already did this via prosody), and stray quote marks are dropped so
+    // voices don't verbalize them. Chant slows the pause further.
+    if(!(isSan && !gujScript)){
+      const short = (isSan && chant) ? ' , , ' : ', ';
+      const long  = (isSan && chant) ? ' . . ' : '. ';
+      t = t.replace(/\u0964/g, short).replace(/\u0965/g, long);
     }
     t = t.replace(/["\u201C\u201D\u2018\u2019']/g, ' ').replace(/\s+/g, ' ').trim();
     return t;
@@ -7306,7 +7328,7 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
   if(voice) u.voice = voice;
   if(useRomanization){
     u.lang = 'en-IN';
-  } else if(ln.lang === 'guj'){
+  } else if(useGujPipeline){
     // With no Gujarati voice (iOS) the text was transliterated to Devanagari —
     // tag it hi-IN so the Hindi voice actually engages.
     const gujOk = (typeof hasNativeGujaratiVoice === 'function') ? hasNativeGujaratiVoice() : true;
@@ -7409,9 +7431,23 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
     timerStart = performance.now();
     timerPlan = buildTimingPlan();
     planIdx = 0;
+    let lastFrame = performance.now();
     function tick(){
       if(session !== state.session){ timer = null; return; }
-      const elapsed = performance.now() - timerStart;
+      const now = performance.now();
+      // If speech is paused (skip prompt, pause-on-call) or the engine has been
+      // silenced (notification stole audio focus), FREEZE the plan clock so the
+      // highlight doesn't run ahead of audio — push timerStart forward by the
+      // frame delta so no time accrues while nothing is being spoken.
+      const synth = window.speechSynthesis;
+      if(synth && (synth.paused || !synth.speaking)){
+        timerStart += (now - lastFrame);
+        lastFrame = now;
+        timer = requestAnimationFrame(tick);
+        return;
+      }
+      lastFrame = now;
+      const elapsed = now - timerStart;
       // Advance through the plan; multiple words may pass in one frame
       while(planIdx < timerPlan.length - 1 && elapsed >= timerPlan[planIdx]){
         planIdx++;
@@ -7862,10 +7898,6 @@ $('playBtn').onclick = ()=>{
 
 // ---------- Immersive full-screen reading ----------
 let _imHideTimer = null;
-function imShowControls(){ document.body.classList.remove('controls-hidden'); }
-function imHideControls(){ /* controls stay visible — no auto-hide */ }
-function imToggleControls(){ /* no-op: floating controls always shown */ }
-function _imTapHandler(){ /* tap no longer toggles chrome; controls are persistent */ }
 function imSyncButtons(){
   const p = $('imPlay'); if(p) p.textContent = state.playing ? '⏸' : '▶';
   const vt = $('imViewToggle'); if(vt){ vt.textContent = state.view === 'doc' ? '📝' : '📄'; vt.title = state.view === 'doc' ? 'Switch to Text view' : 'Switch to Document view'; }
@@ -8107,7 +8139,17 @@ function updatePageInfo(){
 }
 
 // Prev/Next page → jump to first line of prev/next processed page
+// While narrating, ⏮/⏭ step by LINE (respecting the language filter);
+// when stopped they jump between processed pages as before.
+function skipLine(dir){
+  const li = (state.current && state.current.lineIdx) || 0;
+  const ok = t => state.langFilter === 'both' || (state.lines[t] && state.lines[t].lang === state.langFilter);
+  let t = li + dir;
+  while(t >= 0 && t < state.lines.length && !ok(t)) t += dir;
+  if(t >= 0 && t < state.lines.length) jumpToWord(t, 0);
+}
 $('prevPage').onclick = ()=>{
+  if(state.playing){ skipLine(-1); return; }
   const pages = getProcessedPages();
   if(!pages.length) return;
   const cur = currentPageEntry();
@@ -8116,6 +8158,7 @@ $('prevPage').onclick = ()=>{
   jumpToPage(pages[idx]);
 };
 $('nextPage').onclick = ()=>{
+  if(state.playing){ skipLine(1); return; }
   const pages = getProcessedPages();
   if(!pages.length) return;
   const cur = currentPageEntry();
@@ -9089,40 +9132,6 @@ function speakPada(text){
   } catch(e){}
 }
 
-// Cluster-boundary picker for manual splitting
-function showSplitPicker(token, onPick){
-  const clusters = SANDHI.graphemeClusters(token.text);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:80;background:var(--overlay-bg);display:flex;align-items:center;justify-content:center;padding:20px';
-  const box = document.createElement('div');
-  box.style.cssText = 'background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:480px;width:100%';
-  box.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Tap where to split <b style="color:var(--san)">'+token.text+'</b></div>';
-  const clusterRow = document.createElement('div');
-  clusterRow.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;font-size:20px;line-height:2';
-  let acc = 0;
-  clusters.forEach((cl, k) => {
-    const cs = document.createElement('span'); cs.textContent = cl; cs.style.color='var(--san)';
-    clusterRow.appendChild(cs);
-    acc += cl.length;
-    if(k < clusters.length - 1){
-      const cut = document.createElement('span');
-      const here = acc;
-      cut.textContent = '✂';
-      cut.style.cssText = 'cursor:pointer;color:var(--accent2);padding:0 4px;font-size:14px';
-      cut.onclick = () => { onPick(here); document.body.removeChild(overlay); };
-      clusterRow.appendChild(cut);
-    }
-  });
-  box.appendChild(clusterRow);
-  const cancel = document.createElement('button');
-  cancel.className='btn ghost'; cancel.style.cssText='margin-top:12px;font-size:12px';
-  cancel.textContent = 'Cancel';
-  cancel.onclick = () => document.body.removeChild(overlay);
-  box.appendChild(cancel);
-  overlay.appendChild(box);
-  overlay.onclick = (e) => { if(e.target===overlay) document.body.removeChild(overlay); };
-  document.body.appendChild(overlay);
-}
 
 async function showMeanings(li, lineEl, btn){
   // If meanings are already shown, toggle collapse/expand instead of re-fetching.
