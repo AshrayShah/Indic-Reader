@@ -295,18 +295,7 @@
     background:color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter:blur(8px);
     border:1px solid var(--line); border-radius:12px; padding:6px 8px; }
   body.immersive #imLang{ display:none !important; }  /* full bar replaces the cycle button */
-  body.immersive #readerSection{ padding-top:calc(env(safe-area-inset-top) + 26px); }
-  /* Custom status strip (time / battery / signal) — true full screen hides the
-     OS status bar, so we render our own thin strip at the very top. */
-  #imStatusBar{ display:none; }
-  body.immersive #imStatusBar{
-    display:flex; align-items:center; justify-content:space-between;
-    position:fixed; top:0; left:0; right:0; z-index:60;
-    padding:calc(env(safe-area-inset-top) + 3px) 14px 3px;
-    font-size:12.5px; font-weight:600; color:var(--ink);
-    background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(6px);
-  }
-  #imStatusBar #imStatusRight{ display:inline-flex; gap:12px; align-items:center; }
+  body.immersive #readerSection{ padding-top:4px; }
   #enterFullscreen{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   #immersiveBar .ibtn.exit{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   /* Floating speed + settings panels (anchored above the bar) */
@@ -933,16 +922,6 @@
 </div>
 
 <!-- Minimal control bar — visible only in immersive full-screen mode -->
-<!-- Custom status strip (time / battery / signal) shown at the top while in
-     true full screen, since the OS status bar is hidden in that mode. -->
-<div id="imStatusBar">
-  <span id="imClock">--:--</span>
-  <span id="imStatusRight">
-    <span id="imSignal" title="Network">📶</span>
-    <span id="imBattery" title="Battery">🔋 --%</span>
-  </span>
-</div>
-
 <div id="immersiveBar">
   <button class="ibtn exit" id="imExit" title="Exit full screen">⤢</button>
   <button class="ibtn" id="imPrev" title="Previous">⏮</button>
@@ -1337,7 +1316,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.36';
+const APP_VERSION = '2.37';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -4192,9 +4171,13 @@ function wordLangInContext(tok, lineLang){
   // User override always wins
   const ov = (typeof getWordLangOverride === 'function') ? getWordLangOverride(tok) : null;
   if(ov) return ov;
+  // Gujarati-script words inherit the line's language: single words like
+  // મત્સ્ય would trip the śloka morphology rules (સ્ય ending), but a lone word
+  // in a Gujarati line is Gujarati vocabulary, and inside a Gujarati-script
+  // śloka line it should stay 'san' with the line.
+  if(/[\u0A80-\u0AFF]/.test(tok)) return lineLang === 'san' ? 'san' : 'guj';
   const d = detectLang(tok);
   if(d === 'unk') return lineLang;            // punctuation/digits → inherit line
-  if(d === 'guj') return 'guj';               // Gujarati script is unambiguous
   // Devanagari word (d is 'san' or 'hin'):
   if(lineLang === 'san'){
     // Only override to Hindi on strong explicit evidence
@@ -7960,63 +7943,15 @@ function imClosePanels(except){
   if(except !== 'settings') $('imSettingsPanel') && $('imSettingsPanel').classList.remove('show');
 }
 
-// ---------- Custom status strip (true full screen hides the OS one) ----------
-let _imClockTimer = null, _imBattery = null, _imBatteryBound = false;
-function imUpdateClock(){
-  const el = $('imClock'); if(!el) return;
-  const d = new Date();
-  let h = d.getHours(); const m = String(d.getMinutes()).padStart(2,'0');
-  const ap = h < 12 ? 'AM' : 'PM'; h = h % 12 || 12;
-  el.textContent = `${h}:${m} ${ap}`;
-}
-function imUpdateBattery(){
-  const el = $('imBattery'); if(!el || !_imBattery) return;
-  const pct = Math.round((_imBattery.level || 0) * 100);
-  const icon = _imBattery.charging ? '⚡' : (pct <= 15 ? '🪫' : '🔋');
-  el.textContent = `${icon} ${pct}%`;
-}
-function imUpdateSignal(){
-  const el = $('imSignal'); if(!el) return;
-  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if(!c){ el.textContent = '📶'; return; }
-  // Map effective connection type to a label + bars
-  const t = (c.effectiveType || '').toLowerCase();
-  const label = c.type === 'wifi' ? 'Wi-Fi' :
-    (t === '4g' ? '4G' : t === '3g' ? '3G' : t === '2g' ? '2G' : t === 'slow-2g' ? '2G' : '');
-  el.textContent = '📶' + (label ? ' ' + label : '');
-}
-function imStartStatus(){
-  imUpdateClock(); imUpdateSignal();
-  if(_imClockTimer) clearInterval(_imClockTimer);
-  _imClockTimer = setInterval(imUpdateClock, 15000);   // refresh clock periodically
-  // Battery (one-time bind, then live updates)
-  if(navigator.getBattery && !_imBatteryBound){
-    _imBatteryBound = true;
-    navigator.getBattery().then(b => {
-      _imBattery = b; imUpdateBattery();
-      b.addEventListener('levelchange', imUpdateBattery);
-      b.addEventListener('chargingchange', imUpdateBattery);
-    }).catch(()=>{ const el=$('imBattery'); if(el) el.textContent=''; });
-  } else if(!navigator.getBattery){
-    const el=$('imBattery'); if(el) el.textContent='';   // unsupported (e.g. iOS) → hide
-  } else { imUpdateBattery(); }
-  const c = navigator.connection;
-  if(c && c.addEventListener){ try { c.addEventListener('change', imUpdateSignal); } catch(e){} }
-}
-function imStopStatus(){
-  if(_imClockTimer){ clearInterval(_imClockTimer); _imClockTimer = null; }
-}
 
 function enterImmersive(){
   document.body.classList.add('immersive');
-  try { if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
-  imSyncButtons(); imRefreshSpeedPanel(); imStartStatus();
+  imSyncButtons(); imRefreshSpeedPanel();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function exitImmersive(){
   document.body.classList.remove('immersive');
-  imClosePanels(''); imStopStatus();
-  try { if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch(e){}
+  imClosePanels('');
 }
 if($('enterFullscreen')) $('enterFullscreen').onclick = enterImmersive;
 if($('imExit')) $('imExit').onclick = exitImmersive;
