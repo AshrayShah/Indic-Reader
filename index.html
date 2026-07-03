@@ -1337,7 +1337,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.34';
+const APP_VERSION = '2.35';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -4236,14 +4236,25 @@ function refineWithDandas(rawLines){
   let sanskritBuffer = [];   // accumulating consecutive Sanskrit-verse lines
   let proseBuffer = [];      // accumulating wrapped prose paragraph lines
 
+  // Shared sentence splitter (periods/questions/dandas), with normalization
+  // for the missing-space-after-terminator PDF artifact (digits excluded).
+  function splitSentences(text){
+    let t = text.replace(/\s+/g, ' ').trim();
+    t = t.replace(/([\u0964\u0965.!?])(?=[^\s.!?\u0964\u09650-9\u0966-\u096F\u0AE6-\u0AEF])/g, '$1 ');
+    return t.split(/(?<=[.!?\u0964\u0965])\s+/).map(s => s.trim()).filter(Boolean);
+  }
   function flushSanskrit(){
     if(sanskritBuffer.length === 0) return;
     const joined = sanskritBuffer.join(' ');
     const split = splitSanskritOnDandas(joined);
-    if(split.length > 0){
-      out.push(...split);
-    } else {
-      out.push(...sanskritBuffer);
+    const pieces = split.length > 0 ? split : sanskritBuffer;
+    for(const p of pieces){
+      // Śāstric COMMENTARY is often misread as Sanskrit (visarga/halanta-heavy
+      // vocabulary) — but real verse has dandas, not ASCII periods. A long
+      // piece containing period-terminated sentences is prose: sentence-split
+      // it so paragraphs never come out as one giant line.
+      if(p.length > 80 && /[.!?]\s/.test(p)) out.push(...splitSentences(p));
+      else out.push(p);
     }
     sanskritBuffer = [];
   }
