@@ -1337,7 +1337,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.31';
+const APP_VERSION = '2.33';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -5729,7 +5729,7 @@ function openLineFixDialog(li){
     box.appendChild(langWrap);
 
     const cfg = getCloudOCRConfig();
-    const cloudAvailable = cfg.enabled && cfg.provider &&
+    const cloudAvailable = !!cfg.provider &&   // configured creds suffice; the global Cloud-OCR toggle governs bulk OCR, not explicit per-line/region re-OCR
       (cfg.provider === 'googleproxy' ? !!localStorage.getItem('cloud_ocr_worker_url') : !!cfg.apiKey);
     const engWrap = document.createElement('div');
     engWrap.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px';
@@ -5744,7 +5744,7 @@ function openLineFixDialog(li){
       b.onclick = () => { useCloud = cloud; engBtns.forEach(x=>x.style.borderColor='var(--line)'); b.style.borderColor='var(--accent)'; };
       engBtns.push(b); engWrap.appendChild(b);
     };
-    mkEng('☁️ Google Vision', true, cloudAvailable);
+    mkEng('☁️ Google', true, cloudAvailable);
     mkEng('📱 Local', false, true);
     box.appendChild(engWrap);
 
@@ -5839,10 +5839,10 @@ function openRegionOCRDialog(pd, cropX, cropY, cropW, cropH){
   langWrap.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px';
   langWrap.innerHTML = '<span style="font-size:12px;color:var(--muted)">Language:</span>';
   const langChoices = [
-    { key:'sa', label:'सं Sanskrit only', hints:['sa'] },
-    { key:'gu', label:'ગુ Gujarati only', hints:['gu'] },
-    { key:'hi', label:'हि Hindi only', hints:['hi'] },
-    { key:'auto', label:'Auto (sa+gu+hi)', hints:['sa','gu','hi'] },
+    { key:'sa', label:'सं', hints:['sa'] },
+    { key:'gu', label:'ગુ', hints:['gu'] },
+    { key:'hi', label:'हि', hints:['hi'] },
+    { key:'auto', label:'Auto', hints:['sa','gu','hi'] },
   ];
   let selectedHints = ['sa']; // default Sanskrit-only (best for verses)
   const langBtns = [];
@@ -5863,7 +5863,7 @@ function openRegionOCRDialog(pd, cropX, cropY, cropW, cropH){
 
   // Engine selector — cloud (if configured) or local
   const cfg = getCloudOCRConfig();
-  const cloudAvailable = cfg.enabled && cfg.provider &&
+  const cloudAvailable = !!cfg.provider &&   // configured creds suffice; the global Cloud-OCR toggle governs bulk OCR, not explicit per-line/region re-OCR
     (cfg.provider === 'googleproxy' ? !!localStorage.getItem('cloud_ocr_worker_url') : !!cfg.apiKey);
   const engWrap = document.createElement('div');
   engWrap.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px';
@@ -5879,7 +5879,7 @@ function openRegionOCRDialog(pd, cropX, cropY, cropW, cropH){
     b.onclick = () => { useCloud = cloud; engBtns.forEach(x=>x.style.borderColor='var(--line)'); b.style.borderColor='var(--accent)'; };
     engBtns.push(b); engWrap.appendChild(b);
   };
-  mkEng('☁️ Google Vision', true, cloudAvailable);
+  mkEng('☁️ Google', true, cloudAvailable);
   mkEng('📱 Local', false, true);
   box.appendChild(engWrap);
 
