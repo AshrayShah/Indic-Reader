@@ -1316,7 +1316,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.37';
+const APP_VERSION = '2.38';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1652,7 +1652,10 @@ function detectGujaratiScriptFlavor(text){
   //     ending) or a danda — conjunct density alone never qualifies, and
   // (b) require ZERO Gujarati function words (real ślokas have none).
   const morph = visarga + viramaEnds + caseEndings;
-  if((morph >= 1 || /[\u0964\u0965]/.test(text)) && sanScore >= 2 && gujScore === 0) return 'san';
+  // Gujarati morphology VETO: attached postpositions/participles (પૂજામાં,
+  // તેનું, પધાર્યા…) never occur in ślokas — any hit means Gujarati prose.
+  const gujMorph = tokens.filter(t => /(માં|થી|નું|નો|ઓએ|યું|ર્યા|ર્યો|વ્યા|હતો|હતી|હતું)$/.test(t)).length;
+  if((morph >= 1 || /[\u0964\u0965]/.test(text)) && sanScore >= 2 && gujScore === 0 && gujMorph === 0) return 'san';
   return 'guj';
 }
 function hasIndic(t){ return INDIC.test(t); }
