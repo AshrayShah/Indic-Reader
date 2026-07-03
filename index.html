@@ -1337,7 +1337,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.33';
+const APP_VERSION = '2.34';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -4222,8 +4222,10 @@ function splitStructuredLines(rawLines){
     const line = (raw || '').replace(/\s+$/,'');
     if(!line.trim()){ out.push(''); continue; }          // keep paragraph gaps
     if(line.length <= 60){ out.push(line); continue; }    // short line = heading/bullet → keep whole
-    // Long line: split after sentence terminators, keeping the terminator
-    const parts = line.split(/(?<=[।॥.?!:])\s+/);
+    // Long line: split after sentence terminators, keeping the terminator.
+    // First restore any missing space after a terminator (digits excluded).
+    const norm = line.replace(/([\u0964\u0965.!?])(?=[^\s.!?\u0964\u09650-9\u0966-\u096F\u0AE6-\u0AEF])/g, '$1 ');
+    const parts = norm.split(/(?<=[।॥.?!:])\s+/);
     parts.forEach(p => { if(p.trim()) out.push(p.trim()); });
   }
   return out;
@@ -4251,7 +4253,10 @@ function refineWithDandas(rawLines){
     // Join the wrapped prose lines, then split on sentence terminators.
     // Result: one sentence per line, which gives clean narration units
     // and lets word-highlight track properly during TTS.
-    const joined = proseBuffer.join(' ').replace(/\s+/g, ' ').trim();
+    let joined = proseBuffer.join(' ').replace(/\s+/g, ' ').trim();
+    // PDFs sometimes drop the space after a sentence terminator; restore it so
+    // the splitter sees the boundary. Digits are excluded (decimals, ॥૧॥ markers).
+    joined = joined.replace(/([\u0964\u0965.!?])(?=[^\s.!?\u0964\u09650-9\u0966-\u096F\u0AE6-\u0AEF])/g, '$1 ');
     // Sentence splitter:
     //   - Gujarati/Hindi use ASCII period as terminator
     //   - Question/exclamation also terminate
@@ -7323,122 +7328,90 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
     });
   }
 
-  const u = TTS.makeUtter(textToSpeak);
-  if(!u){ onEnd && onEnd(); return; }
-  if(voice) u.voice = voice;
+  if(!textToSpeak.replace(/\s/g,'')){ onEnd && onEnd(); return; }
+
+  // Voice/lang/rate computed once, applied to every chunk utterance.
+  let uLang;
   if(useRomanization){
-    u.lang = 'en-IN';
+    uLang = 'en-IN';
   } else if(useGujPipeline){
     // With no Gujarati voice (iOS) the text was transliterated to Devanagari —
     // tag it hi-IN so the Hindi voice actually engages.
     const gujOk = (typeof hasNativeGujaratiVoice === 'function') ? hasNativeGujaratiVoice() : true;
-    u.lang = gujOk ? 'gu-IN' : 'hi-IN';
+    uLang = gujOk ? 'gu-IN' : 'hi-IN';
   } else {
-    u.lang = 'hi-IN';
+    uLang = 'hi-IN';
   }
   const base = state.speeds[ln.lang] || 1;
   // Chant slows to ~0.7× of the slider (floor 0.4, cap 1.4 so it stays slow);
   // plain Sanskrit reads at ~0.9× the slider; other languages use the slider as-is.
-  u.rate  = chant ? Math.min(1.4, Math.max(0.4, base * 0.7))
-          : (isSan ? Math.max(0.4, base * 0.9) : base);
-  u.pitch = chant ? 0.85 : (isSan ? 0.95 : 1.0);
-  u.volume = 1;
-  if(!textToSpeak.replace(/\s/g,'')){ onEnd && onEnd(); return; }
+  const uRate  = chant ? Math.min(1.4, Math.max(0.4, base * 0.7))
+               : (isSan ? Math.max(0.4, base * 0.9) : base);
+  const uPitch = chant ? 0.85 : (isSan ? 0.95 : 1.0);
+
+  // CHUNKING: high-quality network voices silently fail (or instantly "end")
+  // on long utterances, which made long paragraphs appear skipped. Split the
+  // spoken text into ~200-char chunks at word boundaries and speak them back
+  // to back; the highlight plan/boundary machinery below is GLOBAL across
+  // chunks, so tracking is seamless.
+  const spokenWords = transformed.filter(t => t);
+  const MAX_UTTER = 200;
+  const chunks = [];
+  { let cs = 0;
+    for(let si = 1; si < wordOffsets.length; si++){
+      if(wordOffsets[si] - wordOffsets[cs] > MAX_UTTER){ chunks.push({s:cs, e:si}); cs = si; }
+    }
+    chunks.push({s:cs, e:wordOffsets.length});
+  }
 
   let currentWi = startWi;
   let timer = null;
   let timerStart = 0;
-  let timerPlan = null;       // pre-computed cumulative word-end times in ms
-  let planIdx = 0;            // how far through the plan we've advanced
-  let lastBoundaryAt = 0;     // wall-clock of last boundary event (for diagnostics)
+  let timerPlan = null;       // cumulative word-end times (ms) over ALL spoken words
+  let planIdx = 0;
   // Immediate first-word highlight
   setActiveWord(li, currentWi);
 
-  // Pre-compute approximate per-word speaking duration — over SPOKEN words,
-  // using akshara (syllable) counts rather than raw characters: a conjunct like
-  // સ્ત્ર is 4 codepoints but ONE spoken syllable, and matras add little time.
-  // Syllable count tracks actual speech duration far better across all three
-  // languages, so the fallback highlight stays close even without boundary events.
+  // Akshara (syllable) counting — a conjunct like સ્ત્ર is 4 codepoints but ONE
+  // spoken syllable; syllable count tracks speech duration far better.
   function countAksharas(t){
-    let n = 0; const cs = [...t];
-    for(let i = 0; i < cs.length; i++){
-      const c = cs[i].charCodeAt(0);
-      const nx = i+1 < cs.length ? cs[i+1].charCodeAt(0) : 0;
+    let n = 0; const cs2 = [...t];
+    for(let i = 0; i < cs2.length; i++){
+      const c = cs2[i].charCodeAt(0);
+      const nx = i+1 < cs2.length ? cs2[i+1].charCodeAt(0) : 0;
       const cons = (c>=0x0915&&c<=0x0939)||(c>=0x0958&&c<=0x095F)||(c>=0x0979&&c<=0x097F)||
                    (c>=0x0A95&&c<=0x0AB9)||(c>=0x0AF9&&c<=0x0AF9);
       const indepVowel = (c>=0x0904&&c<=0x0914)||(c>=0x0A85&&c<=0x0A94)||(c===0x0950)||(c===0x0AD0);
       const halant = nx===0x094D || nx===0x0ACD;
       if(cons && !halant) n++;
       else if(indepVowel) n++;
-      else if(c===0x0902||c===0x0903||c===0x0A82||c===0x0A83) n += 0.4; // anusvara/visarga lengthen slightly
-      else if(c>=0x0041&&c<=0x007A) n += 0.45; // Latin (romanized) — roughly 2 letters/syllable
+      else if(c===0x0902||c===0x0903||c===0x0A82||c===0x0A83) n += 0.4;
+      else if(c>=0x0041&&c<=0x007A) n += 0.45;
     }
     return Math.max(1, n);
   }
   function buildTimingPlan(){
-    const aksharaMs = 190 / Math.max(0.3, u.rate);
-    const spaceMs   = 70  / Math.max(0.3, u.rate);
+    const aksharaMs = 190 / Math.max(0.3, uRate);
+    const spaceMs   = 70  / Math.max(0.3, uRate);
     let cumMs = 0;
     return wordOffsets.map((_, si) => {
       const t = transformed[spokenToDisplay[si]] || '';
       let ms = countAksharas(t) * aksharaMs;
-      if(/[,.]/.test(t)) ms += 140 / Math.max(0.3, u.rate);  // pause punctuation
+      if(/[,.]/.test(t)) ms += 140 / Math.max(0.3, uRate);
       ms = Math.max(150, ms);
       cumMs += ms + spaceMs;
       return cumMs;
     });
   }
-
-  // RESYNC strategy: when a boundary event fires for word idx N, we know the
-  // engine actually reached word N at this real-world timestamp. Recalibrate
-  // timerStart so that the plan's expected time for word N equals "now".
-  // This corrects drift without abandoning the timer (which protects us when
-  // boundary events stop firing partway through a line — common on Indic voices).
-  u.onboundary = (ev)=>{
-    if(session !== state.session) return;
-    if(ev.name && ev.name!=='word') return;
-    const ci = ev.charIndex;
-    // Binary search wordOffsets (spoken positions), then map to display index
-    let lo = 0, hi = wordOffsets.length - 1, idx = 0;
-    while(lo <= hi){
-      const mid = (lo + hi) >> 1;
-      if(wordOffsets[mid] <= ci){ idx = mid; lo = mid + 1; } else { hi = mid - 1; }
-    }
-    const newWi = startWi + (spokenToDisplay[idx] != null ? spokenToDisplay[idx] : idx);
-    // Snap the highlight to the real position
-    if(newWi !== currentWi){
-      currentWi = newWi;
-      planIdx = idx;
-      setActiveWord(li, currentWi);
-    }
-    lastBoundaryAt = performance.now();
-    // Recalibrate the timer baseline. If we're at word idx now (in plan terms),
-    // and the plan says word idx ends at timerPlan[idx], then "now" should
-    // correspond to roughly timerPlan[idx-1] elapsed (we're at the START of idx).
-    if(timerPlan && idx > 0){
-      const expectedElapsed = timerPlan[idx-1];
-      timerStart = performance.now() - expectedElapsed;
-    } else if(timerPlan){
-      timerStart = performance.now();
-    }
-  };
-
-  // Timer always runs. Boundary events nudge timerStart to keep audio and
-  // highlight in sync. No "give up and stop" path — even if boundary events
-  // never fire, the plan-based timer keeps highlighting on schedule.
-  u.onstart = ()=>{
-    if(session !== state.session) return;
-    timerStart = performance.now();
-    timerPlan = buildTimingPlan();
-    planIdx = 0;
+  function startTimerIfNeeded(){
+    if(timer) return;
     let lastFrame = performance.now();
     function tick(){
       if(session !== state.session){ timer = null; return; }
       const now = performance.now();
-      // If speech is paused (skip prompt, pause-on-call) or the engine has been
-      // silenced (notification stole audio focus), FREEZE the plan clock so the
-      // highlight doesn't run ahead of audio — push timerStart forward by the
-      // frame delta so no time accrues while nothing is being spoken.
+      // Freeze the plan clock while speech is paused (skip prompt, call) or
+      // silenced (notification stole focus / between chunks) so the highlight
+      // never runs ahead of the audio.
       const synth = window.speechSynthesis;
       if(synth && (synth.paused || !synth.speaking)){
         timerStart += (now - lastFrame);
@@ -7448,7 +7421,6 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
       }
       lastFrame = now;
       const elapsed = now - timerStart;
-      // Advance through the plan; multiple words may pass in one frame
       while(planIdx < timerPlan.length - 1 && elapsed >= timerPlan[planIdx]){
         planIdx++;
         currentWi = startWi + (spokenToDisplay[planIdx] != null ? spokenToDisplay[planIdx] : planIdx);
@@ -7458,44 +7430,89 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
       timer = requestAnimationFrame(tick);
     }
     timer = requestAnimationFrame(tick);
-  };
-
-  // Car/Bluetooth resilience: when Android Auto connects or the audio route
-  // switches, the engine sometimes kills the in-flight utterance instantly
-  // (onend within ~milliseconds, nothing spoken). Detect that — an utterance
-  // that "finished" far too fast for its length — and re-speak it once instead
-  // of silently skipping the line.
-  let _spokenAt = 0, _retried = false;
-  const _minPlausibleMs = Math.min(1500, Math.max(250, textToSpeak.length * 18 / Math.max(0.4, u.rate)));
-  function _finish(){
+  }
+  function _finishLine(){
     if(timer){ cancelAnimationFrame(timer); timer = null; }
     onEnd && onEnd();
   }
-  function _maybeRetry(){
-    const dur = performance.now() - _spokenAt;
-    if(!_retried && dur < _minPlausibleMs && session === state.session && state.playing && textToSpeak.length > 6){
-      _retried = true;
-      const u2 = TTS.makeUtter(textToSpeak);
-      if(u2){
-        u2.voice = u.voice; u2.lang = u.lang; u2.rate = u.rate; u2.pitch = u.pitch; u2.volume = u.volume;
-        u2.onboundary = u.onboundary; u2.onstart = u.onstart;
-        u2.onend = _finish; u2.onerror = _finish;   // no second retry
-        setTimeout(() => {
-          if(session !== state.session || !state.playing){ _finish(); return; }
-          _spokenAt = performance.now();
-          state.utter = u2;
-          TTS.speak(u2);
-        }, 250);
-        return;
+
+  function speakChunk(ki){
+    if(session !== state.session || !state.playing && ki > 0){ _finishLine(); return; }
+    if(ki >= chunks.length){ _finishLine(); return; }
+    const ch = chunks[ki];
+    const chunkText = spokenWords.slice(ch.s, ch.e).join(' ');
+    if(!chunkText.replace(/\s/g,'')){ speakChunk(ki + 1); return; }
+    const chunkBase = wordOffsets[ch.s];
+    const u = TTS.makeUtter(chunkText);
+    if(!u){ _finishLine(); return; }
+    if(voice) u.voice = voice;
+    u.lang = uLang; u.rate = uRate; u.pitch = uPitch; u.volume = 1;
+
+    // Boundary events carry chunk-local charIndex → shift to global offsets.
+    u.onboundary = (ev)=>{
+      if(session !== state.session) return;
+      if(ev.name && ev.name!=='word') return;
+      const ci = ev.charIndex + chunkBase;
+      let lo = ch.s, hi = ch.e - 1, idx = ch.s;
+      while(lo <= hi){
+        const mid = (lo + hi) >> 1;
+        if(wordOffsets[mid] <= ci){ idx = mid; lo = mid + 1; } else { hi = mid - 1; }
       }
+      const newWi = startWi + (spokenToDisplay[idx] != null ? spokenToDisplay[idx] : idx);
+      if(newWi !== currentWi){
+        currentWi = newWi;
+        planIdx = idx;
+        setActiveWord(li, currentWi);
+      }
+      if(timerPlan && idx > 0){
+        timerStart = performance.now() - timerPlan[idx-1];
+      } else if(timerPlan){
+        timerStart = performance.now();
+      }
+    };
+    u.onstart = ()=>{
+      if(session !== state.session) return;
+      if(!timerPlan) timerPlan = buildTimingPlan();
+      // Align the global plan clock to this chunk's first word.
+      planIdx = ch.s;
+      timerStart = performance.now() - (ch.s > 0 ? timerPlan[ch.s - 1] : 0);
+      currentWi = startWi + (spokenToDisplay[ch.s] != null ? spokenToDisplay[ch.s] : ch.s);
+      setActiveWord(li, currentWi);
+      startTimerIfNeeded();
+    };
+
+    // Car/Bluetooth resilience: an utterance that "finished" far too fast for
+    // its length was killed by an audio-route switch — re-speak it once.
+    let _spokenAt = 0, _retried = false;
+    const _minPlausibleMs = Math.min(1500, Math.max(250, chunkText.length * 18 / Math.max(0.4, uRate)));
+    const _next = ()=> speakChunk(ki + 1);
+    function _maybeRetry(){
+      const dur = performance.now() - _spokenAt;
+      if(!_retried && dur < _minPlausibleMs && session === state.session && state.playing && chunkText.length > 6){
+        _retried = true;
+        const u2 = TTS.makeUtter(chunkText);
+        if(u2){
+          u2.voice = u.voice; u2.lang = u.lang; u2.rate = u.rate; u2.pitch = u.pitch; u2.volume = 1;
+          u2.onboundary = u.onboundary; u2.onstart = u.onstart;
+          u2.onend = _next; u2.onerror = _next;   // no second retry
+          setTimeout(() => {
+            if(session !== state.session || !state.playing){ _finishLine(); return; }
+            _spokenAt = performance.now();
+            state.utter = u2;
+            TTS.speak(u2);
+          }, 250);
+          return;
+        }
+      }
+      _next();
     }
-    _finish();
+    u.onend = _maybeRetry;
+    u.onerror = _maybeRetry;
+    state.utter = u;
+    _spokenAt = performance.now();
+    TTS.speak(u);
   }
-  u.onend = _maybeRetry;
-  u.onerror = _maybeRetry;
-  state.utter = u;
-  _spokenAt = performance.now();
-  TTS.speak(u);
+  speakChunk(0);
 }
 
 function setActiveWord(li, wi){
