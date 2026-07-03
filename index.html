@@ -1337,7 +1337,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.35';
+const APP_VERSION = '2.36';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1668,7 +1668,12 @@ function detectGujaratiScriptFlavor(text){
   // 4. Dense conjuncts (2+ halants inside one token) — સચ્ચિદાનન્દ etc.
   const denseConjunct = tokens.filter(t => (t.match(/\u0ACD/g) || []).length >= 2).length;
   const sanScore = Math.min(visarga, 4) + Math.min(viramaEnds, 3) + caseEndings + Math.min(denseConjunct, 3);
-  if(sanScore >= 2 && sanScore > gujScore) return 'san';
+  // STRICT rule — sanskritized Gujarati prose is full of conjuncts, so:
+  // (a) require a real MORPHOLOGICAL marker (visarga / final halanta / case
+  //     ending) or a danda — conjunct density alone never qualifies, and
+  // (b) require ZERO Gujarati function words (real ślokas have none).
+  const morph = visarga + viramaEnds + caseEndings;
+  if((morph >= 1 || /[\u0964\u0965]/.test(text)) && sanScore >= 2 && gujScore === 0) return 'san';
   return 'guj';
 }
 function hasIndic(t){ return INDIC.test(t); }
