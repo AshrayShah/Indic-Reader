@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.40';
+const APP_VERSION = '2.41';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7284,6 +7284,33 @@ function speakLine(li, startWi, session, onEnd){
   speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant, voice, useRomanization);
 }
 
+// ---- Speech-rate self-calibration ----
+// Indic voices rarely fire boundary events, so highlighting follows the
+// estimated timing plan. If the real engine speaks faster than the static
+// estimate, the highlight cumulatively lags (several words behind by line
+// end). Fix: every finished chunk tells us its REAL duration; fold the
+// actual/planned ratio into a persistent per-voice multiplier (EMA) that the
+// plan applies. Converges within 1-2 lines and persists across sessions.
+const _TTS_CAL_KEY = 'indic_tts_cal_v1';
+let _ttsCal = (function(){
+  try { return JSON.parse(localStorage.getItem(_TTS_CAL_KEY) || '{}'); }
+  catch(_){ return {}; }
+})();
+function getTtsCal(key){
+  const v = _ttsCal[key];
+  return (typeof v === 'number' && v >= 0.4 && v <= 2.0) ? v : 1;
+}
+function updateTtsCal(key, ratio){
+  // ratio = actualMs / plannedMs for one chunk. Ignore wild values (pauses,
+  // audio-route drops, retries are filtered by the caller; this is a backstop).
+  if(!(ratio > 0.4 && ratio < 2.5)) return;
+  const cur = getTtsCal(key);
+  // Ideal multiplier is cur*ratio; blend 30% per observation.
+  const next = Math.min(2.0, Math.max(0.4, cur * (0.7 + 0.3 * ratio)));
+  _ttsCal[key] = Math.round(next * 1000) / 1000;
+  try { localStorage.setItem(_TTS_CAL_KEY, JSON.stringify(_ttsCal)); } catch(_){}
+}
+
 // Normal (non-chhand-segmented) line narration. Extracted so the chant path can
 // fall back to it when a verse can't be segmented into padas.
 function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant, voice, useRomanization){
@@ -7380,6 +7407,7 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
   let timerStart = 0;
   let timerPlan = null;       // cumulative word-end times (ms) over ALL spoken words
   let planIdx = 0;
+  let _pauseStamp = 0;        // wall-clock of the last observed speech pause
   // Immediate first-word highlight
   setActiveWord(li, currentWi);
 
@@ -7401,15 +7429,19 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
     }
     return Math.max(1, n);
   }
+  // Per-voice calibration key — different engines/voices have very different
+  // real speaking speeds for the same rate setting.
+  const calKey = ((voice && voice.name) || '') + '|' + uLang;
   function buildTimingPlan(){
-    const aksharaMs = 190 / Math.max(0.3, uRate);
-    const spaceMs   = 70  / Math.max(0.3, uRate);
+    const cal = getTtsCal(calKey);
+    const aksharaMs = (190 * cal) / Math.max(0.3, uRate);
+    const spaceMs   = (70  * cal) / Math.max(0.3, uRate);
     let cumMs = 0;
     return wordOffsets.map((_, si) => {
       const t = transformed[spokenToDisplay[si]] || '';
       let ms = countAksharas(t) * aksharaMs;
-      if(/[,.]/.test(t)) ms += 140 / Math.max(0.3, uRate);
-      ms = Math.max(150, ms);
+      if(/[,.]/.test(t)) ms += (140 * cal) / Math.max(0.3, uRate);
+      ms = Math.max(120 * cal, ms);
       cumMs += ms + spaceMs;
       return cumMs;
     });
@@ -7425,6 +7457,7 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
       // never runs ahead of the audio.
       const synth = window.speechSynthesis;
       if(synth && (synth.paused || !synth.speaking)){
+        if(synth.paused) _pauseStamp = now;   // real pause — exclude from calibration
         timerStart += (now - lastFrame);
         lastFrame = now;
         timer = requestAnimationFrame(tick);
@@ -7483,7 +7516,10 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
     };
     u.onstart = ()=>{
       if(session !== state.session) return;
-      if(!timerPlan) timerPlan = buildTimingPlan();
+      // Rebuild every chunk — calibration may have been updated by the chunk
+      // that just finished, keeping long lines accurate from mid-line onward.
+      timerPlan = buildTimingPlan();
+      _startedAt = performance.now();   // audio actually began (excludes engine startup latency)
       // Align the global plan clock to this chunk's first word.
       planIdx = ch.s;
       timerStart = performance.now() - (ch.s > 0 ? timerPlan[ch.s - 1] : 0);
@@ -7494,11 +7530,23 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
 
     // Car/Bluetooth resilience: an utterance that "finished" far too fast for
     // its length was killed by an audio-route switch — re-speak it once.
-    let _spokenAt = 0, _retried = false;
+    let _spokenAt = 0, _retried = false, _startedAt = 0;
     const _minPlausibleMs = Math.min(1500, Math.max(250, chunkText.length * 18 / Math.max(0.4, uRate)));
     const _next = ()=> speakChunk(ki + 1);
     function _maybeRetry(){
       const dur = performance.now() - _spokenAt;
+      // Calibrate: a cleanly-finished chunk tells us the engine's true speed.
+      // Skip retried chunks, implausibly short ones (route drops), and any
+      // chunk during which speech was paused (call / skip prompt inflates dur).
+      const _wasPaused = _startedAt > 0 && _pauseStamp > _startedAt;
+      const realDur = _startedAt > 0 ? (performance.now() - _startedAt) : 0;
+      if(!_retried && session === state.session && timerPlan &&
+         dur >= _minPlausibleMs && !_wasPaused && realDur > 400){
+        const plannedMs = timerPlan[ch.e - 1] - (ch.s > 0 ? timerPlan[ch.s - 1] : 0);
+        if(plannedMs > 400){
+          updateTtsCal(calKey, realDur / plannedMs);
+        }
+      }
       if(!_retried && dur < _minPlausibleMs && session === state.session && state.playing && chunkText.length > 6){
         _retried = true;
         const u2 = TTS.makeUtter(chunkText);
