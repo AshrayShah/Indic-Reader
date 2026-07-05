@@ -287,7 +287,7 @@
   /* Full screen: the tabs row shows ONLY the language filter, floating just
      above the bottom control bar. View switching stays in the bar (📄/📝). */
   body.immersive #readerSection .tabs{ display:block !important; position:fixed; left:0; right:0;
-    bottom:calc(62px + env(safe-area-inset-bottom)); z-index:49; background:transparent;
+    top:auto; height:auto; bottom:calc(62px + env(safe-area-inset-bottom)); z-index:49; background:transparent;
     border:none; padding:0; margin:0; pointer-events:none; }
   body.immersive #readerSection .tabs > *:not(.langfilter){ display:none !important; }
   body.immersive #readerSection .tabs .langfilter{ display:flex !important; pointer-events:auto;
@@ -295,6 +295,13 @@
     background:color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter:blur(8px);
     border:1px solid var(--line); border-radius:12px; padding:6px 8px; }
   body.immersive #imLang{ display:none !important; }  /* full bar replaces the cycle button */
+  /* Narration progress pill (% of lines narrated) */
+  #imProgress{ display:none; }
+  body.immersive #imProgress{ display:block; position:fixed; right:10px;
+    bottom:calc(118px + env(safe-area-inset-bottom)); z-index:49;
+    background:color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter:blur(8px);
+    border:1px solid var(--line); border-radius:10px; padding:4px 10px;
+    font-size:12px; font-weight:700; color:var(--muted); }
   body.immersive #readerSection{ padding-top:4px; }
   #enterFullscreen{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   #immersiveBar .ibtn.exit{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
@@ -922,6 +929,8 @@
 </div>
 
 <!-- Minimal control bar — visible only in immersive full-screen mode -->
+<div id="imProgress">0%</div>
+
 <div id="immersiveBar">
   <button class="ibtn exit" id="imExit" title="Exit full screen">⤢</button>
   <button class="ibtn" id="imPrev" title="Previous">⏮</button>
@@ -1316,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.38';
+const APP_VERSION = '2.40';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7284,7 +7293,7 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
   const transformed = wordsArr.map(w => {
     let t = w.t;
     // Skip verse-number markers in narration (don't want TTS saying "one")
-    if(looksLikeVerseNumber(t) || /^[०-९0-9૦-૯]+$/.test(t)){
+    if(looksLikeVerseNumber(t)){   // only ॥…॥-style verse markers; plain numbers ARE spoken
       return '';
     }
     if(isSan && !gujScript){
@@ -7517,10 +7526,16 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
   speakChunk(0);
 }
 
+let _lastProgLi = -1;
 function setActiveWord(li, wi){
   // Hot path during narration — keep it minimal.
   state.current = {lineIdx:li, wordIdx:wi};
   highlight();
+  if(li !== _lastProgLi){
+    _lastProgLi = li;
+    const el = document.getElementById('imProgress');
+    if(el && state.lines.length) el.textContent = Math.min(100, Math.round(((li+1) / state.lines.length) * 100)) + '%';
+  }
   // updatePageInfo() is now called only on page boundaries, not every word
 }
 
