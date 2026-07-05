@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.41';
+const APP_VERSION = '2.42';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7306,7 +7306,7 @@ function updateTtsCal(key, ratio){
   if(!(ratio > 0.4 && ratio < 2.5)) return;
   const cur = getTtsCal(key);
   // Ideal multiplier is cur*ratio; blend 30% per observation.
-  const next = Math.min(2.0, Math.max(0.4, cur * (0.7 + 0.3 * ratio)));
+  const next = Math.min(2.0, Math.max(0.4, cur * (0.3 + 0.7 * ratio)));
   _ttsCal[key] = Math.round(next * 1000) / 1000;
   try { localStorage.setItem(_TTS_CAL_KEY, JSON.stringify(_ttsCal)); } catch(_){}
 }
@@ -7546,6 +7546,13 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
         if(plannedMs > 400){
           updateTtsCal(calKey, realDur / plannedMs);
         }
+      }
+      // Hard snap: the audio for this chunk is DONE, so the highlight must be
+      // on its last word — never left trailing behind by a slow estimate.
+      if(!_retried && session === state.session && dur >= _minPlausibleMs){
+        planIdx = ch.e - 1;
+        const lastWi = startWi + (spokenToDisplay[ch.e - 1] != null ? spokenToDisplay[ch.e - 1] : ch.e - 1);
+        if(lastWi !== currentWi){ currentWi = lastWi; setActiveWord(li, currentWi); }
       }
       if(!_retried && dur < _minPlausibleMs && session === state.session && state.playing && chunkText.length > 6){
         _retried = true;
