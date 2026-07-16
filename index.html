@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.44';
+const APP_VERSION = '2.45';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7628,16 +7628,38 @@ function pageProgressInfo(li){
   return {pct: total ? Math.min(100, Math.round((done / total) * 100)) : 0, msLeft};
 }
 
+// Live countdown state — recomputed (recalibrated) at every line change with
+// the latest learned voice speed; ticked down 1s at a time in between.
+let _etaMsLeft = 0, _etaPct = 0, _etaTimer = null;
+function _renderProgress(){
+  const el = document.getElementById('imProgress');
+  if(el) el.innerHTML = _etaPct + '%<br><span style="font-size:10px;font-weight:600">~' + fmtEta(_etaMsLeft) + '</span>';
+}
+function _ensureEtaTicker(){
+  if(_etaTimer) return;
+  _etaTimer = setInterval(()=>{
+    if(!state.playing || _etaMsLeft <= 0) return;
+    const synth = window.speechSynthesis;
+    if(synth && (synth.paused || !synth.speaking)) return;  // paused — freeze countdown
+    _etaMsLeft = Math.max(0, _etaMsLeft - 1000);
+    _renderProgress();
+  }, 1000);
+}
+
 function setActiveWord(li, wi){
   // Hot path during narration — keep it minimal.
   state.current = {lineIdx:li, wordIdx:wi};
   highlight();
   if(li !== _lastProgLi){
     _lastProgLi = li;
-    const el = document.getElementById('imProgress');
-    if(el && state.lines.length){
+    if(state.lines.length){
       const info = pageProgressInfo(li);
-      if(info) el.innerHTML = info.pct + '%<br><span style="font-size:10px;font-weight:600">~' + fmtEta(info.msLeft) + '</span>';
+      if(info){
+        _etaPct = info.pct;
+        _etaMsLeft = info.msLeft;   // fresh estimate with current calibration
+        _renderProgress();
+        _ensureEtaTicker();
+      }
     }
   }
   // updatePageInfo() is now called only on page boundaries, not every word
