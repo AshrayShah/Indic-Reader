@@ -301,7 +301,7 @@
     bottom:calc(118px + env(safe-area-inset-bottom)); z-index:49;
     background:color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter:blur(8px);
     border:1px solid var(--line); border-radius:10px; padding:4px 10px;
-    font-size:12px; font-weight:700; color:var(--muted); }
+    font-size:12px; font-weight:700; color:var(--muted); text-align:center; line-height:1.25; }
   body.immersive #readerSection{ padding-top:4px; }
   #enterFullscreen{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
   #immersiveBar .ibtn.exit{ background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700; }
@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.43';
+const APP_VERSION = '2.44';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -7432,10 +7432,11 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
   // Per-voice calibration key — different engines/voices have very different
   // real speaking speeds for the same rate setting.
   const calKey = ((voice && voice.name) || '') + '|' + uLang;
+  _lastTtsCalKey = calKey;
   function buildTimingPlan(){
     const cal = getTtsCal(calKey);
     const aksharaMs = (190 * cal) / Math.max(0.3, uRate);
-    const spaceMs   = (70  * cal) / Math.max(0.3, uRate);
+    const spaceMs   = (50  * cal) / Math.max(0.3, uRate);
     let cumMs = 0;
     return wordOffsets.map((_, si) => {
       const t = transformed[spokenToDisplay[si]] || '';
@@ -7472,7 +7473,7 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
       // on a word as it BEGINS, not after it ends. Fixes constant 1-word lag.
       while(planIdx < timerPlan.length - 1){
         const nextDur = timerPlan[planIdx + 1] - timerPlan[planIdx];
-        if(elapsed < timerPlan[planIdx] - Math.min(320, nextDur * 0.45)) break;
+        if(elapsed < timerPlan[planIdx] - Math.min(380, nextDur * 0.55)) break;
         planIdx++;
         currentWi = startWi + (spokenToDisplay[planIdx] != null ? spokenToDisplay[planIdx] : planIdx);
         setActiveWord(li, currentWi);
@@ -7589,6 +7590,44 @@ function speakLinePlain(li, startWi, session, onEnd, ln, wordsArr, isSan, chant,
 }
 
 let _lastProgLi = -1;
+let _lastTtsCalKey = '';   // set by speakLinePlain; used for ETA estimates
+
+// Rough syllable count for ETA (base letters minus matras/marks/spaces).
+function _roughAksharas(t){
+  return Math.max(1, [...String(t).replace(/[\u0900-\u0903\u093A-\u094D\u0951-\u0957\u0962\u0963\u0A81-\u0A83\u0ABA-\u0ACD\u0AE2\u0AE3\s]/g,'')].length);
+}
+function fmtEta(ms){
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s >= 60 ? Math.floor(s/60) + 'm ' + (s % 60) + 's' : s + 's';
+}
+// Progress within the CURRENT page only (PDF auto-load makes whole-doc %
+// meaningless). Resets automatically the moment narration enters a new page.
+function pageProgressInfo(li){
+  const lines = state.lines;
+  if(!lines.length || !lines[li]) return null;
+  const src = lines[li].sourceId, pg = lines[li].pageIdx;
+  const samePage = i => lines[i] && lines[i].sourceId === src && lines[i].pageIdx === pg;
+  const ok = i => state.langFilter === 'both' || lines[i].lang === state.langFilter;
+  let s = li; while(s > 0 && samePage(s - 1)) s--;
+  let e = li; while(e < lines.length - 1 && samePage(e + 1)) e++;
+  let total = 0, done = 0, msLeft = 0;
+  const cal = getTtsCal(_lastTtsCalKey);
+  for(let i = s; i <= e; i++){
+    if(!ok(i)) continue;
+    total++;
+    if(i < li){ done++; continue; }
+    const rate = Math.max(0.3, state.speeds[lines[i].lang === 'gu' ? 'guj' : 'hin'] || 1);
+    for(const w of (lines[i].words || [])){
+      const t = w.t || '';
+      let ms = (_roughAksharas(t) * 190 + 70) * cal / rate;
+      if(/,/.test(t))        ms += 300 * cal / rate;
+      if(/[.!?\u0964\u0965]/.test(t)) ms += 380 * cal / rate;
+      msLeft += ms;
+    }
+  }
+  return {pct: total ? Math.min(100, Math.round((done / total) * 100)) : 0, msLeft};
+}
+
 function setActiveWord(li, wi){
   // Hot path during narration — keep it minimal.
   state.current = {lineIdx:li, wordIdx:wi};
@@ -7596,7 +7635,10 @@ function setActiveWord(li, wi){
   if(li !== _lastProgLi){
     _lastProgLi = li;
     const el = document.getElementById('imProgress');
-    if(el && state.lines.length) el.textContent = Math.min(100, Math.round(((li+1) / state.lines.length) * 100)) + '%';
+    if(el && state.lines.length){
+      const info = pageProgressInfo(li);
+      if(info) el.innerHTML = info.pct + '%<br><span style="font-size:10px;font-weight:600">~' + fmtEta(info.msLeft) + '</span>';
+    }
   }
   // updatePageInfo() is now called only on page boundaries, not every word
 }
