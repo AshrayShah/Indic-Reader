@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.45';
+const APP_VERSION = '2.47';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -6578,7 +6578,7 @@ function openSpeedFineTune(key, chipEl){
     const v = parseFloat(e.target.value);
     state.speeds[key] = v;
     $('speedFineVal').textContent = fmtSpeed(v);
-    refreshSpeedChips();
+    onSpeedChanged();
     try { localStorage.setItem('indic_speeds', JSON.stringify(state.speeds)); } catch(_){}
   };
 }
@@ -7616,7 +7616,13 @@ function pageProgressInfo(li){
     if(!ok(i)) continue;
     total++;
     if(i < li){ done++; continue; }
-    const rate = Math.max(0.3, state.speeds[lines[i].lang === 'gu' ? 'guj' : 'hin'] || 1);
+    // Mirror the exact rate the narrator will use: same slider key (guj/san/hin)
+    // plus the Sanskrit (×0.9) / chant (×0.7) adjustments from speakLinePlain.
+    const lg = lines[i].lang;
+    let rate = state.speeds[lg] != null ? state.speeds[lg] : 1;
+    if(lg === 'san') rate = state.chant ? Math.min(1.4, Math.max(0.4, rate * 0.7))
+                                        : Math.max(0.4, rate * 0.9);
+    rate = Math.max(0.3, rate);
     for(const w of (lines[i].words || [])){
       const t = w.t || '';
       let ms = (_roughAksharas(t) * 190 + 70) * cal / rate;
@@ -7644,6 +7650,19 @@ function _ensureEtaTicker(){
     _etaMsLeft = Math.max(0, _etaMsLeft - 1000);
     _renderProgress();
   }, 1000);
+}
+// Single source of truth for speed changes — called by BOTH the normal-mode
+// fine-tune slider and the immersive slider, so the two stay identical and
+// the ETA re-syncs to the new speed immediately (not just at the next line).
+function onSpeedChanged(){
+  if(typeof refreshSpeedChips === 'function') refreshSpeedChips();
+  if(document.body.classList.contains('immersive') &&
+     typeof imRefreshSpeedPanel === 'function') imRefreshSpeedPanel();
+  const li = state.current.lineIdx;
+  if(li >= 0 && state.lines.length){
+    const info = pageProgressInfo(li);
+    if(info){ _etaPct = info.pct; _etaMsLeft = info.msLeft; _renderProgress(); }
+  }
 }
 
 function setActiveWord(li, wi){
@@ -8115,7 +8134,7 @@ if($('imSpeedSlider')) $('imSpeedSlider').oninput = (e) => {
   const v = parseFloat(e.target.value);
   state.speeds[_imSpeedKey] = v;
   $('imSpeedVal').textContent = fmtSpeed(v);
-  if(typeof refreshSpeedChips === 'function') refreshSpeedChips();
+  onSpeedChanged();
   imSyncButtons();
   try { localStorage.setItem('indic_speeds', JSON.stringify(state.speeds)); } catch(_){}
 };
