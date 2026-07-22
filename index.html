@@ -1325,7 +1325,7 @@
 
 // App version — shown in the footer and used as the service-worker cache tag.
 // Bump this on each release (keep it in sync with the cache name in sw.js).
-const APP_VERSION = '2.47';
+const APP_VERSION = '2.48';
 
 // ---------- Library availability check ----------
 // The CDN libraries are loaded with `defer` (so they don't block first paint).
@@ -1663,8 +1663,18 @@ function detectGujaratiScriptFlavor(text){
   const morph = visarga + viramaEnds + caseEndings;
   // Gujarati morphology VETO: attached postpositions/participles (પૂજામાં,
   // તેનું, પધાર્યા…) never occur in ślokas — any hit means Gujarati prose.
-  const gujMorph = tokens.filter(t => /(માં|થી|નું|નો|ઓએ|યું|ર્યા|ર્યો|વ્યા|હતો|હતી|હતું)$/.test(t)).length;
-  if((morph >= 1 || /[\u0964\u0965]/.test(text)) && sanScore >= 2 && gujScore === 0 && gujMorph === 0) return 'san';
+  const gujMorph = tokens.filter(t => /(માં|થી|નું|નો|ઓએ|યું|ર્યા|ર્યો|વ્યા|હતો|હતી|હતું|થયા|થયો|થયું|થઈ|ેલું|ેલા|ેલી|વામાં|ોને|ોના|ોનું|ોની|ીઓ)$/.test(t)).length;
+  // Prose-sentence VETO: Gujarati commentary ends with '.', ślokas end with
+  // dandas. A period-terminated line without any danda is prose unless the
+  // Sanskrit morphology is overwhelming (halant-final NAMES like સત્યજિત્
+  // appear in prose too, so 1-2 markers must not flip a sentence).
+  const endsWithPeriod = /\.\s*$/.test(text.trim()) && !/[\u0964\u0965]/.test(text);
+  if(endsWithPeriod && morph < 3) return 'guj';
+  // STRICT gate — conjunct density alone never qualifies. Require EITHER two
+  // real morphological markers, OR one marker together with danda punctuation.
+  // A danda by itself (common in prose quoting verse numbers) is not enough.
+  const hasDanda = /[\u0964\u0965]/.test(text);
+  if((morph >= 2 || (morph >= 1 && hasDanda)) && sanScore >= 2 && gujScore === 0 && gujMorph === 0) return 'san';
   return 'guj';
 }
 function hasIndic(t){ return INDIC.test(t); }
@@ -2113,7 +2123,7 @@ function _djb2(str){ let h = 5381, i = str.length; while(i){ h = ((h * 33) ^ str
 // Bump OCR_PIPE_VER whenever the OCR post-processing pipeline changes (e.g.
 // the reading-order rebuild). It's part of the cache key, so entries produced
 // by an older pipeline are automatically ignored — no manual cache clearing.
-const OCR_PIPE_VER = 4;
+const OCR_PIPE_VER = 5;
 function _ocrSettingsSig(){
   let cfg = {}; try { cfg = getCloudOCRConfig() || {}; } catch(e){}
   return `v${OCR_PIPE_VER}f${state.forceOCR?1:0}c${cfg.enabled?1:0}${cfg.provider||'x'}b${cfg.fallback?1:0}`;
@@ -3685,10 +3695,13 @@ function renderThumbWindow(){
     d.className='thumb'+(state.selectedPages.has(p)?' sel':'');
     d.innerHTML = `<canvas></canvas><span class="n">${p}</span>`;
     d.onclick = ()=>{
-      if(state.selectedPages.has(p)) state.selectedPages.delete(p);
-      else state.selectedPages.add(p);
-      d.classList.toggle('sel');
-      syncRangeFromSet(); // keep text input in sync
+      if(state.selectedPages.has(p)){
+        openPagePreview(p, d);   // re-tap a selected page → inspect it full-size
+      } else {
+        state.selectedPages.add(p);
+        d.classList.add('sel');
+        syncRangeFromSet(); // keep text input in sync
+      }
     };
     grid.appendChild(d);
     renderThumbCanvas(p, d.querySelector('canvas'));
@@ -3703,6 +3716,47 @@ async function renderThumbCanvas(p, canvas){
     canvas.width = v.width; canvas.height = v.height;
     await page.render({canvasContext:canvas.getContext('2d'), viewport:v}).promise;
   }catch(e){}
+}
+
+// Full-size preview of a page so its content can be checked BEFORE processing.
+// Opened by re-tapping an already-selected thumbnail. Offers Deselect so a
+// wrong page can be dropped right from the preview.
+async function openPagePreview(p, thumbEl){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:flex;flex-direction:column';
+  ov.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;flex:none">' +
+      '<span style="color:#fff;font-weight:700;font-size:15px">Page ' + p + '</span>' +
+      '<span style="flex:1"></span>' +
+      '<button id="ppDesel" class="btn" style="font-size:13px">Deselect page</button>' +
+      '<button id="ppClose" class="btn" style="font-size:13px">✕ Close</button>' +
+    '</div>' +
+    '<div id="ppScroll" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;text-align:center">' +
+      '<canvas id="ppCanvas" style="max-width:100%;height:auto;background:#fff"></canvas>' +
+      '<div id="ppLoad" style="color:#fff;padding:20px;font-size:14px">Loading page…</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  const close = ()=> ov.remove();
+  ov.querySelector('#ppClose').onclick = close;
+  ov.onclick = (e)=>{ if(e.target === ov) close(); };
+  ov.querySelector('#ppDesel').onclick = ()=>{
+    state.selectedPages.delete(p);
+    if(thumbEl) thumbEl.classList.remove('sel');
+    syncRangeFromSet();
+    close();
+  };
+  try{
+    const page = await state.pdfDoc.getPage(p);
+    // Render at readable resolution (~2× CSS pixels for zooming in)
+    const scale = Math.min(2.2, (window.innerWidth * 2) / page.getViewport({scale:1}).width);
+    const v = page.getViewport({scale});
+    const c = ov.querySelector('#ppCanvas');
+    c.width = v.width; c.height = v.height;
+    await page.render({canvasContext:c.getContext('2d'), viewport:v}).promise;
+    const ld = ov.querySelector('#ppLoad'); if(ld) ld.remove();
+  }catch(e){
+    const ld = ov.querySelector('#ppLoad'); if(ld) ld.textContent = 'Could not render page.';
+  }
 }
 
 $('winPrev').onclick = ()=>{ state.thumbWindow=Math.max(0,state.thumbWindow-1); renderThumbWindow(); };
@@ -6559,6 +6613,19 @@ function refreshSpeedChips(){
     const valId = k==='guj' ? 'sgVal' : k==='hin' ? 'shVal' : 'ssVal';
     const v = state.speeds[k]; if($(valId) && v!=null) $(valId).textContent = fmtSpeed(v);
   });
+  orderSpeedChips();
+}
+// Put the dominant language of the loaded content FIRST (most-used slider is
+// the one people reach for). Falls back to guj/hin/san order when no content.
+function orderSpeedChips(){
+  const chips = Array.from(document.querySelectorAll('.speed-chip'));
+  if(chips.length < 2 || !state.lines || !state.lines.length) return;
+  const counts = {guj:0, hin:0, san:0};
+  for(const ln of state.lines){ if(counts[ln.lang] != null) counts[ln.lang]++; }
+  const order = ['guj','hin','san'].sort((a,b) => counts[b] - counts[a]);
+  const parent = chips[0].parentElement;
+  const byKey = {}; chips.forEach(c => byKey[c.dataset.speed] = c);
+  order.forEach(k => { if(byKey[k]) parent.appendChild(byKey[k]); });
 }
 let _openSpeedKey = null;
 function openSpeedFineTune(key, chipEl){
@@ -8253,6 +8320,7 @@ function jumpToPage(entry){
   else { highlight(); }
 }
 function updatePageInfo(){
+  if(typeof orderSpeedChips === 'function') orderSpeedChips();
   const pages = getProcessedPages();
   const btn = $('pageInfo');
   if(!pages.length){ btn.style.display='none'; return; }
